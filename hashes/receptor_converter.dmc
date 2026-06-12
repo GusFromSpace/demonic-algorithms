@@ -1,0 +1,115 @@
+# Hamming receptor/converter port from TheAlgorithms/Python receptor_converter.py
+# Returns the extracted data bits as a string.
+
+# is n (>=1) a power of two
+fn is_pow2(n: i64) -> bool {
+    (n & (n - 1)) == 0
+}
+
+# Extract the data-bit string: walk input positions 1..len(s); a position that is
+# a power of two (while fewer than size_par parity bits seen) is a parity bit,
+# everything else is a data bit. Collect the data bits in order.
+fn data_out(size_par: i64, s: str) -> str {
+    let n = len(s)
+    let !qtd_bp = 0
+    let !out = ""
+    let !i = 1
+    while i <= n {
+        let is_parity = if qtd_bp < size_par { is_pow2(i) } else { false }
+        if is_parity {
+            qtd_bp = qtd_bp + 1
+        } else {
+            out = out + chr(s[i - 1])
+        }
+        i = i + 1
+    }
+    out
+}
+
+# Number of data bits extracted.
+fn data_len(size_par: i64, s: str) -> i64 {
+    len(data_out(size_par, s))
+}
+
+# Received parity string: the bits at the parity (power-of-two) positions.
+fn parity_recv(size_par: i64, s: str) -> str {
+    let n = len(s)
+    let !qtd_bp = 0
+    let !out = ""
+    let !i = 1
+    while i <= n {
+        let is_parity = if qtd_bp < size_par { is_pow2(i) } else { false }
+        if is_parity {
+            qtd_bp = qtd_bp + 1
+            out = out + chr(s[i - 1])
+        }
+        i = i + 1
+    }
+    out
+}
+
+# Computed parity string over the data layout.
+fn parity_calc(size_par: i64, s: str) -> str {
+    let dat = data_out(size_par, s)
+    let ndata = len(dat)
+    let total = size_par + ndata
+    # build data_ord: for each position x in 1..total, mark whether it is a data
+    # slot and what bit value sits there. We compute parity directly.
+    let !out = ""
+    let !bp = 1
+    while bp <= size_par {
+        let !cont_bo = 0
+        # walk template positions
+        let !qtd_bp = 0
+        let !cont_data = 0
+        let !x = 1
+        while x <= total {
+            let is_parity = if qtd_bp < size_par { is_pow2(x) } else { false }
+            if is_parity {
+                qtd_bp = qtd_bp + 1
+            } else {
+                # data slot at position x carries dat[cont_data]
+                let bit = (x / (2 ** (bp - 1))) & 1
+                let dval = dat[cont_data] - 48
+                if bit == 1 {
+                    if dval == 1 {
+                        cont_bo = cont_bo + 1
+                    }
+                }
+                cont_data = cont_data + 1
+            }
+            x = x + 1
+        }
+        out = out + chr((cont_bo % 2) + 48)
+        bp = bp + 1
+    }
+    out
+}
+
+# ack: received parity == computed parity
+fn ack(size_par: i64, s: str) -> bool {
+    parity_recv(size_par, s) == parity_calc(size_par, s)
+}
+
+fn test_data_out_1() -> bool { data_out(4, "1111010010111111") == "101010111111" }
+fn test_data_out_2() -> bool { data_out(3, "1011010") == "1010" }
+fn test_data_out_3() -> bool { data_out(4, "01101001") == "1100" }
+fn test_data_out_4() -> bool { data_out(2, "10110") == "110" }
+
+fn test_data_len_1() -> bool { data_len(4, "1111010010111111") == 12 }
+fn test_data_len_2() -> bool { data_len(3, "1011010") == 4 }
+
+fn test_parity_recv_1() -> bool { parity_recv(4, "1111010010111111") == "1110" }
+fn test_parity_recv_2() -> bool { parity_recv(3, "1011010") == "101" }
+fn test_parity_recv_3() -> bool { parity_recv(4, "01101001") == "0101" }
+fn test_parity_recv_4() -> bool { parity_recv(2, "10110") == "10" }
+
+fn test_parity_calc_1() -> bool { parity_calc(4, "1111010010111111") == "1110" }
+fn test_parity_calc_2() -> bool { parity_calc(3, "1011010") == "101" }
+fn test_parity_calc_3() -> bool { parity_calc(4, "01101001") == "0110" }
+fn test_parity_calc_4() -> bool { parity_calc(2, "10110") == "11" }
+
+fn test_ack_1() -> bool { ack(4, "1111010010111111") == true }
+fn test_ack_2() -> bool { ack(3, "1011010") == true }
+fn test_ack_3() -> bool { ack(4, "01101001") == false }
+fn test_ack_4() -> bool { ack(2, "10110") == false }

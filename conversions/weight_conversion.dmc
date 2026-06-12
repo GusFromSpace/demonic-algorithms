@@ -1,0 +1,91 @@
+# Port of TheAlgorithms/Python weight_conversion.
+# value * KILOGRAM_CHART[to_type] * WEIGHT_TYPE_CHART[from_type]
+# Charts indexed by unit -> index. Returns -1 index for unknown unit.
+
+fn unit_index(u: str) -> i64 {
+    if u == "kilogram" { 0 }
+    else if u == "gram" { 1 }
+    else if u == "milligram" { 2 }
+    else if u == "metric-ton" { 3 }
+    else if u == "long-ton" { 4 }
+    else if u == "short-ton" { 5 }
+    else if u == "pound" { 6 }
+    else if u == "stone" { 7 }
+    else if u == "ounce" { 8 }
+    else if u == "carrat" { 9 }
+    else if u == "atomic-mass-unit" { 10 }
+    else { -1 }
+}
+
+# KILOGRAM_CHART value by index (how many of `to` per 1 kg)
+fn kilogram_chart(i: i64) -> f32 {
+    if i == 0 { 1.0 }
+    else if i == 1 { 1000.0 }
+    else if i == 2 { 1000000.0 }
+    else if i == 3 { 0.001 }
+    else if i == 4 { 0.0009842073 }
+    else if i == 5 { 0.0011023122 }
+    else if i == 6 { 2.2046244202 }
+    else if i == 7 { 0.1574731728 }
+    else if i == 8 { 35.273990723 }
+    else if i == 9 { 5000.0 }
+    else { 6.022136652e26 }
+}
+
+# WEIGHT_TYPE_CHART value by index (kg per 1 of `from`)
+fn weight_type_chart(i: i64) -> f32 {
+    if i == 0 { 1.0 }
+    else if i == 1 { 0.001 }
+    else if i == 2 { 0.000001 }
+    else if i == 3 { 1000.0 }
+    else if i == 4 { 1016.04608 }
+    else if i == 5 { 907.184 }
+    else if i == 6 { 0.453592 }
+    else if i == 7 { 6.35029 }
+    else if i == 8 { 0.0283495 }
+    else if i == 9 { 0.0002 }
+    else { 1.660540199e-27 }
+}
+
+# Returns 0.0 on invalid unit (sentinel; Python raises ValueError).
+fn weight_conversion(from_type: str, to_type: str, value: f32) -> f32 {
+    let ti = unit_index(to_type)
+    let fi = unit_index(from_type)
+    if ti < 0 { 0.0 }
+    else if fi < 0 { 0.0 }
+    else { value * kilogram_chart(ti) * weight_type_chart(fi) }
+}
+
+fn approx(got: f32, want: f32, rel: f32) -> bool {
+    let d = abs(got - want)
+    let tol = rel * abs(want) + rel
+    d <= tol
+}
+
+fn test_kg_gram() -> bool {
+    approx(weight_conversion("kilogram", "gram", 1.0), 1000.0, 0.0000001)
+}
+fn test_kg_metricton() -> bool {
+    approx(weight_conversion("kilogram", "metric-ton", 4.0), 0.004, 0.0000001)
+}
+fn test_gram_kg() -> bool {
+    approx(weight_conversion("gram", "kilogram", 1.0), 0.001, 0.0000001)
+}
+fn test_pound_ounce() -> bool {
+    approx(weight_conversion("pound", "ounce", 1.0), 16.000000000027015, 0.0000001)
+}
+fn test_longton_amu() -> bool {
+    approx(weight_conversion("long-ton", "atomic-mass-unit", 4.0), 2.4475073353955697e30, 0.00001)
+}
+fn test_amu_kg() -> bool {
+    approx(weight_conversion("atomic-mass-unit", "kilogram", 4.0), 6.642160796e-27, 0.00001)
+}
+fn test_shortton_pound() -> bool {
+    approx(weight_conversion("short-ton", "pound", 2.0), 4000.0000000294335, 0.0000001)
+}
+fn test_stone_ounce() -> bool {
+    approx(weight_conversion("stone", "ounce", 1.0), 224.00007054835967, 0.0000001)
+}
+fn test_invalid() -> bool {
+    weight_conversion("slug", "kilogram", 1.0) == 0.0
+}

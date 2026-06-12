@@ -1,0 +1,142 @@
+# Hamming-code emitter/converter, ported from TheAlgorithms/Python emitter_converter.py
+# Returns a tensor[total] of int bits (0/1): data bits interleaved with parity bits.
+# data is a tensor of int bits (0/1); size_par = number of parity bits; dlen = data length.
+
+fn emitter_converter[T](size_par: i64, data: Tensor[i64, [T]], dlen: i64) -> Tensor[i64, [T]] {
+    # T == size_par + dlen (the full output length). data holds dlen bits in [0..dlen).
+    let total = size_par + dlen
+
+    # data_ord: bit value for data positions, -1 for parity positions (1-indexed pos p uses index p-1)
+    let !data_ord = forge.zeros[i64, [T]]
+    let !is_parity = forge.zeros[i64, [T]]   # 1 if position (i+1) is a parity slot
+    let !qtd_bp = 0
+    let !cont_data = 0
+    let !i = 0
+    while i < total {
+        let pos = i + 1
+        # parity slot iff pos is a power of two AND we still have parity bits to place
+        let powtwo = if (pos & (pos - 1)) == 0 { 1 } else { 0 }
+        if qtd_bp < size_par {
+            if powtwo == 1 {
+                is_parity[i] = 1
+                qtd_bp = qtd_bp + 1
+            } else {
+                is_parity[i] = 0
+            }
+        } else {
+            is_parity[i] = 0
+        }
+        if is_parity[i] == 1 {
+            data_ord[i] = -1
+        } else {
+            data_ord[i] = data[cont_data]
+            cont_data = cont_data + 1
+        }
+        i = i + 1
+    }
+
+    # parity[bp-1] for bp in 1..=size_par
+    let !parity = forge.zeros[i64, [T]]
+    let !bp = 1
+    while bp <= size_par {
+        let !cont_bo = 0
+        let !c = 0
+        while c < total {
+            if data_ord[c] != -1 {
+                # bit (bp-1) of (c+1): ((c+1) / 2**(bp-1)) % 2
+                let aux = ((c + 1) / (2 ** (bp - 1))) % 2
+                if aux == 1 {
+                    if data_ord[c] == 1 {
+                        cont_bo = cont_bo + 1
+                    }
+                }
+            }
+            c = c + 1
+        }
+        parity[bp - 1] = cont_bo % 2
+        bp = bp + 1
+    }
+
+    # mount the message
+    let !out = forge.zeros[i64, [T]]
+    let !cont_bp = 0
+    let !x = 0
+    while x < total {
+        if data_ord[x] == -1 {
+            out[x] = parity[cont_bp]
+            cont_bp = cont_bp + 1
+        } else {
+            out[x] = data_ord[x]
+        }
+        x = x + 1
+    }
+    out
+}
+
+# ---- tests ----
+
+fn test_emitter_4_101010111111() -> bool {
+    # data "101010111111", size_par 4, total 16
+    let !d = forge.zeros[i64, [16]]
+    d[0]=1 d[1]=0 d[2]=1 d[3]=0 d[4]=1 d[5]=0 d[6]=1 d[7]=1 d[8]=1 d[9]=1 d[10]=1 d[11]=1
+    let r = emitter_converter[16](4, d, 12)
+    # expected ['1','1','1','1','0','1','0','0','1','0','1','1','1','1','1','1']
+    let !exp = forge.zeros[i64, [16]]
+    exp[0]=1 exp[1]=1 exp[2]=1 exp[3]=1 exp[4]=0 exp[5]=1 exp[6]=0 exp[7]=0
+    exp[8]=1 exp[9]=0 exp[10]=1 exp[11]=1 exp[12]=1 exp[13]=1 exp[14]=1 exp[15]=1
+    let !ok = true
+    let !k = 0
+    while k < 16 {
+        if r[k] != exp[k] { ok = false }
+        k = k + 1
+    }
+    ok
+}
+
+fn test_emitter_3_1010() -> bool {
+    # data "1010", size_par 3, total 7
+    let !d = forge.zeros[i64, [7]]
+    d[0]=1 d[1]=0 d[2]=1 d[3]=0
+    let r = emitter_converter[7](3, d, 4)
+    # expected ['1','0','1','1','0','1','0']
+    let !exp = forge.zeros[i64, [7]]
+    exp[0]=1 exp[1]=0 exp[2]=1 exp[3]=1 exp[4]=0 exp[5]=1 exp[6]=0
+    let !ok = true
+    let !k = 0
+    while k < 7 {
+        if r[k] != exp[k] { ok = false }
+        k = k + 1
+    }
+    ok
+}
+
+fn test_emitter_4_zeros() -> bool {
+    # data "00000000", size_par 4, total 12 -> all zeros
+    let !d = forge.zeros[i64, [12]]
+    let r = emitter_converter[12](4, d, 8)
+    let !ok = true
+    let !k = 0
+    while k < 12 {
+        if r[k] != 0 { ok = false }
+        k = k + 1
+    }
+    ok
+}
+
+fn test_emitter_4_ones() -> bool {
+    # data "11111111", size_par 4, total 12
+    let !d = forge.zeros[i64, [12]]
+    d[0]=1 d[1]=1 d[2]=1 d[3]=1 d[4]=1 d[5]=1 d[6]=1 d[7]=1
+    let r = emitter_converter[12](4, d, 8)
+    # expected ['1','1','1','0','1','1','1','0','1','1','1','1']
+    let !exp = forge.zeros[i64, [12]]
+    exp[0]=1 exp[1]=1 exp[2]=1 exp[3]=0 exp[4]=1 exp[5]=1 exp[6]=1 exp[7]=0
+    exp[8]=1 exp[9]=1 exp[10]=1 exp[11]=1
+    let !ok = true
+    let !k = 0
+    while k < 12 {
+        if r[k] != exp[k] { ok = false }
+        k = k + 1
+    }
+    ok
+}

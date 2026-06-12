@@ -1,0 +1,98 @@
+# Jump search over a sorted int array (TheAlgorithms/Python search_jump_search).
+# arr is a fixed tensor; n is the logical length. Returns index or -1.
+fn jump_search[C](arr: Tensor[f32, [C]], n: i64, item: f32) -> i64 {
+    let block_size = floor(sqrt(to_float(n))) as i64
+
+    let !prev = 0
+    let !step = block_size
+
+    # advance blocks while arr[min(step,n)-1] < item
+    let !found_block = false
+    let !done = false
+    while !done {
+        let idx = if step < n { step } else { n }
+        if arr[idx - 1] < item {
+            prev = step
+            step = step + block_size
+            if prev >= n {
+                found_block = true   # signals "return -1"
+                done = true
+            }
+        } else {
+            done = true
+        }
+    }
+    if found_block {
+        return -1
+    }
+
+    # linear scan from prev
+    let !res = -1
+    let !scanning = true
+    while scanning {
+        if arr[prev] < item {
+            prev = prev + 1
+            let lim = if step < n { step } else { n }
+            if prev == lim {
+                res = -1
+                scanning = false
+            }
+        } else {
+            scanning = false
+        }
+    }
+    if res == -1 {
+        # check could have broken out of the loop with arr[prev] >= item
+        if prev < n {
+            if arr[prev] == item {
+                res = prev
+            } else {
+                res = -1
+            }
+        }
+    }
+    res
+}
+
+fn test_jump_basic() -> bool {
+    let !a = forge.zeros[f32, [6]]
+    a[0] = 0.0  a[1] = 1.0  a[2] = 2.0  a[3] = 3.0  a[4] = 4.0  a[5] = 5.0
+    jump_search(a, 6, 3.0) == 3
+}
+
+fn test_jump_neg() -> bool {
+    let !a = forge.zeros[f32, [3]]
+    a[0] = -5.0  a[1] = -2.0  a[2] = -1.0
+    jump_search(a, 3, -1.0) == 2
+}
+
+fn test_jump_miss() -> bool {
+    let !a = forge.zeros[f32, [4]]
+    a[0] = 0.0  a[1] = 5.0  a[2] = 10.0  a[3] = 20.0
+    jump_search(a, 4, 8.0) == -1
+}
+
+fn test_jump_fib() -> bool {
+    let !a = forge.zeros[f32, [16]]
+    a[0]=0.0 a[1]=1.0 a[2]=1.0 a[3]=2.0 a[4]=3.0 a[5]=5.0 a[6]=8.0 a[7]=13.0
+    a[8]=21.0 a[9]=34.0 a[10]=55.0 a[11]=89.0 a[12]=144.0 a[13]=233.0 a[14]=377.0 a[15]=610.0
+    jump_search(a, 16, 55.0) == 10
+}
+
+fn test_jump_first() -> bool {
+    let !a = forge.zeros[f32, [6]]
+    a[0] = 0.0  a[1] = 1.0  a[2] = 2.0  a[3] = 3.0  a[4] = 4.0  a[5] = 5.0
+    jump_search(a, 6, 0.0) == 0
+}
+
+fn test_jump_last() -> bool {
+    let !a = forge.zeros[f32, [6]]
+    a[0] = 0.0  a[1] = 1.0  a[2] = 2.0  a[3] = 3.0  a[4] = 4.0  a[5] = 5.0
+    jump_search(a, 6, 5.0) == 5
+}
+
+fn test_jump_too_big() -> bool {
+    let !a = forge.zeros[f32, [6]]
+    a[0] = 0.0  a[1] = 1.0  a[2] = 2.0  a[3] = 3.0  a[4] = 4.0  a[5] = 5.0
+    jump_search(a, 6, 10.0) == -1
+}

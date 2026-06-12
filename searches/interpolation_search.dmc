@@ -1,0 +1,91 @@
+# Port of TheAlgorithms/Python search/interpolation_search.py
+# demoniC has no None/Option -> -1 sentinel means "not found".
+
+# Python-faithful floor division (Python // ; demoniC integer / truncates toward 0)
+fn fdiv(a: i64, b: i64) -> i64 {
+    let q = a / b
+    let r = a - q * b
+    if r != 0 { if (r < 0) != (b < 0) { q - 1 } else { q } } else { q }
+}
+
+# Iterative interpolation search over a sorted list of ints.
+fn interpolation_search(coll, item: i64) -> i64 {
+    let !left = 0
+    let !right = list_len(coll) - 1
+    let !res = -1
+    let !done = false
+    while left <= right {
+        if !done {
+            let vl = list_get(coll, left)
+            let vr = list_get(coll, right)
+            if vl == vr {
+                if vl == item { res = left }
+                done = true  left = right + 1
+            } else {
+                let point = left + fdiv((item - vl) * (right - left), vr - vl)
+                if point < 0 { done = true  left = right + 1 }
+                else { if point >= list_len(coll) { done = true  left = right + 1 }
+                else {
+                    let cur = list_get(coll, point)
+                    if cur == item { res = point  done = true  left = right + 1 }
+                    else { if point < left { right = left  left = point }
+                    else { if point > right { left = right  right = point }
+                    else { if item < cur { right = point - 1 }
+                    else { left = point + 1 } } } }
+                } }
+            }
+        }
+    }
+    res
+}
+
+# Recursive helper (explicit left/right).
+fn interp_rec_h(coll, item: i64, left: i64, right: i64) -> i64 {
+    let vl = list_get(coll, left)
+    let vr = list_get(coll, right)
+    if vl == vr {
+        if vl == item { left } else { -1 }
+    } else {
+        let point = left + fdiv((item - vl) * (right - left), vr - vl)
+        if point < 0 { -1 }
+        else { if point >= list_len(coll) { -1 }
+        else {
+            let cur = list_get(coll, point)
+            if cur == item { point }
+            else { if point < left { interp_rec_h(coll, item, point, left) }
+            else { if point > right { interp_rec_h(coll, item, right, left) }
+            else { if cur > item { interp_rec_h(coll, item, left, point - 1) }
+            else { interp_rec_h(coll, item, point + 1, right) } } } }
+        } }
+    }
+}
+
+# Recursive interpolation search (Python default right = len-1).
+fn interpolation_search_by_recursion(coll, item: i64) -> i64 {
+    interp_rec_h(coll, item, 0, list_len(coll) - 1)
+}
+
+fn test_interpolation_search() -> bool {
+    let a = list(1,2,3,4,5)
+    let b = list(100)
+    let c = list(5,5,5,5,5)
+    let e = list()
+    interpolation_search(a, 2) == 1 &&
+    interpolation_search(a, 4) == 3 &&
+    interpolation_search(a, 6) == -1 &&
+    interpolation_search(e, 1) == -1 &&
+    interpolation_search(b, 100) == 0 &&
+    interpolation_search(a, 0) == -1 &&
+    interpolation_search(a, 7) == -1 &&
+    interpolation_search(c, 3) == -1
+}
+
+fn test_interpolation_search_by_recursion() -> bool {
+    let a = list(0,5,7,10,15)
+    let c = list(5,5,5,5,5)
+    interpolation_search_by_recursion(a, 0) == 0 &&
+    interpolation_search_by_recursion(a, 15) == 4 &&
+    interpolation_search_by_recursion(a, 5) == 1 &&
+    interpolation_search_by_recursion(a, 100) == -1 &&
+    interpolation_search_by_recursion(c, 3) == -1
+}

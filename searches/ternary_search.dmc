@@ -1,0 +1,155 @@
+# Ternary search (divide-and-conquer into 3 parts) — ported from
+# TheAlgorithms/Python search_ternary_search.py
+# precision = 10 (small spans fall back to linear search)
+
+# Linear search over array[left..right). Returns index or -1.
+fn lin_search(left: i64, right: i64, array, target: i64) -> i64 {
+    let !i = left
+    let !res = -1
+    while i < right {
+        if list_get(array, i) == target {
+            res = i
+            i = right
+        } else {
+            i = i + 1
+        }
+    }
+    res
+}
+
+# Iterative ternary search. Returns index or -1.
+fn ite_ternary_search(array, target: i64) -> i64 {
+    let !left = 0
+    let !right = list_len(array)
+    let !res = -1
+    let !done = false
+    while left <= right {
+        if done {
+            left = right + 1
+        } else {
+            if right - left < 10 {
+                res = lin_search(left, right, array, target)
+                done = true
+                left = right + 1
+            } else {
+                let one_third = (left + right) / 3 + 1
+                let two_third = 2 * (left + right) / 3 + 1
+                if list_get(array, one_third) == target {
+                    res = one_third
+                    done = true
+                    left = right + 1
+                } else {
+                    if list_get(array, two_third) == target {
+                        res = two_third
+                        done = true
+                        left = right + 1
+                    } else {
+                        if target < list_get(array, one_third) {
+                            right = one_third - 1
+                        } else {
+                            if list_get(array, two_third) < target {
+                                left = two_third + 1
+                            } else {
+                                left = one_third + 1
+                                right = two_third - 1
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    res
+}
+
+# Recursive ternary search. Returns index or -1.
+fn rec_ternary_search(left: i64, right: i64, array, target: i64) -> i64 {
+    if left < right {
+        if right - left < 10 {
+            lin_search(left, right, array, target)
+        } else {
+            let one_third = (left + right) / 3 + 1
+            let two_third = 2 * (left + right) / 3 + 1
+            if list_get(array, one_third) == target {
+                one_third
+            } else {
+                if list_get(array, two_third) == target {
+                    two_third
+                } else {
+                    if target < list_get(array, one_third) {
+                        rec_ternary_search(left, one_third - 1, array, target)
+                    } else {
+                        if list_get(array, two_third) < target {
+                            rec_ternary_search(two_third + 1, right, array, target)
+                        } else {
+                            rec_ternary_search(one_third + 1, two_third - 1, array, target)
+                        }
+                    }
+                }
+            }
+        }
+    } else {
+        -1
+    }
+}
+
+fn test_lin_search() -> bool {
+    let a = list(4, 5, 6, 7)
+    let b = list(-18, 2)
+    let c = list(5)
+    lin_search(0, 4, a, 7) == 3
+        && lin_search(0, 3, a, 7) == -1
+        && lin_search(0, 2, b, -18) == 0
+        && lin_search(0, 1, c, 5) == 0
+}
+
+fn test_ite_small() -> bool {
+    let tl = list(0, 1, 2, 8, 13, 17, 19, 32, 42)
+    let q = list(4, 5, 6, 7)
+    let b = list(-18, 2)
+    let c = list(5)
+    ite_ternary_search(tl, 3) == -1
+        && ite_ternary_search(tl, 13) == 4
+        && ite_ternary_search(q, 4) == 0
+        && ite_ternary_search(q, -10) == -1
+        && ite_ternary_search(b, -18) == 0
+        && ite_ternary_search(c, 5) == 0
+}
+
+fn test_ite_big() -> bool {
+    # 0..19 — exercises the actual ternary (non-linear) path.
+    # The reference algorithm returns -1 for 6 and 13 (its +1 offsets are buggy);
+    # we port faithfully and assert the reference's exact outputs.
+    let big = list(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19)
+    ite_ternary_search(big, 0) == 0
+        && ite_ternary_search(big, 5) == 5
+        && ite_ternary_search(big, 6) == -1
+        && ite_ternary_search(big, 13) == -1
+        && ite_ternary_search(big, 17) == 17
+        && ite_ternary_search(big, 19) == 19
+        && ite_ternary_search(big, 100) == -1
+}
+
+fn test_rec_small() -> bool {
+    let tl = list(0, 1, 2, 8, 13, 17, 19, 32, 42)
+    let q = list(4, 5, 6, 7)
+    let b = list(-18, 2)
+    let c = list(5)
+    rec_ternary_search(0, 9, tl, 3) == -1
+        && rec_ternary_search(4, 9, tl, 42) == 8
+        && rec_ternary_search(0, 2, q, 4) == 0
+        && rec_ternary_search(0, 3, q, -10) == -1
+        && rec_ternary_search(0, 1, b, -18) == 0
+        && rec_ternary_search(0, 1, c, 5) == 0
+}
+
+fn test_rec_big() -> bool {
+    let big = list(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19)
+    rec_ternary_search(0, 20, big, 0) == 0
+        && rec_ternary_search(0, 20, big, 5) == 5
+        && rec_ternary_search(0, 20, big, 6) == -1
+        && rec_ternary_search(0, 20, big, 13) == -1
+        && rec_ternary_search(0, 20, big, 17) == 17
+        && rec_ternary_search(0, 20, big, 19) == 19
+        && rec_ternary_search(0, 20, big, 100) == -1
+}

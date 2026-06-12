@@ -1,0 +1,18 @@
+# Fletcher-16 checksum (position-dependent), ported from TheAlgorithms/Python.
+# Input is ASCII text; s[i] yields the byte codepoint directly.
+fn fletcher16(text: str) -> i64 {
+    let n = len(text)
+    let !sum1 = 0
+    let !sum2 = 0
+    for i in 0..n {
+        sum1 = (sum1 + text[i]) % 255
+        sum2 = (sum1 + sum2) % 255
+    }
+    (sum2 << 8) | sum1
+}
+
+fn test_fletcher16() -> bool {
+    fletcher16("hello world") == 6752
+    && fletcher16("onethousandfourhundredthirtyfour") == 28347
+    && fletcher16("The quick brown fox jumps over the lazy dog.") == 5655
+}

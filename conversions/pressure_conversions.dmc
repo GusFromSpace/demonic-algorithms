@@ -1,0 +1,52 @@
+# Pressure unit conversion ported from TheAlgorithms/Python conv_pressure_conversions.py
+# Units encoded as int codes (dict not available in demoniC):
+#   0=atm 1=pascal 2=bar 3=kilopascal 4=megapascal 5=psi 6=inHg 7=torr
+# value * from_factor[from] * to_factor[to]
+
+fn from_factor(u: i64) -> f32 {
+    match u {
+        0 => 1.0,
+        1 => 0.0000098,
+        2 => 0.986923,
+        3 => 0.00986923,
+        4 => 9.86923,
+        5 => 0.068046,
+        6 => 0.0334211,
+        7 => 0.00131579,
+        _ => 0.0,
+    }
+}
+
+fn to_factor(u: i64) -> f32 {
+    match u {
+        0 => 1.0,
+        1 => 101325.0,
+        2 => 1.01325,
+        3 => 101.325,
+        4 => 0.101325,
+        5 => 14.6959,
+        6 => 29.9213,
+        7 => 760.0,
+        _ => 0.0,
+    }
+}
+
+fn pressure_conversion(value: f32, from_type: i64, to_type: i64) -> f32 {
+    value * from_factor(from_type) * to_factor(to_type)
+}
+
+fn approx(a: f32, b: f32) -> bool {
+    let d = a - b
+    let ad = if d < 0.0 { 0.0 - d } else { d }
+    let scale = if b < 0.0 { 0.0 - b } else { b }
+    ad <= 0.0001 + scale * 0.00001
+}
+
+fn test_atm_pascal() -> bool { approx(pressure_conversion(4.0, 0, 1), 405300.0) }
+fn test_pascal_psi() -> bool { approx(pressure_conversion(1.0, 1, 5), 0.00014401982) }
+fn test_bar_atm() -> bool { approx(pressure_conversion(1.0, 2, 0), 0.986923) }
+fn test_kilopascal_bar() -> bool { approx(pressure_conversion(3.0, 3, 2), 0.029999991892) }
+fn test_megapascal_psi() -> bool { approx(pressure_conversion(2.0, 4, 5), 290.074434314) }
+fn test_psi_torr() -> bool { approx(pressure_conversion(4.0, 5, 7), 206.85984) }
+fn test_inHg_atm() -> bool { approx(pressure_conversion(1.0, 6, 0), 0.0334211) }
+fn test_torr_psi() -> bool { approx(pressure_conversion(1.0, 7, 5), 0.019336718261) }

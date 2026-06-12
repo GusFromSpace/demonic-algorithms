@@ -1,0 +1,134 @@
+# Faithful port of TheAlgorithms/Python bubble_sort (iterative + recursive).
+# Operates on lists of comparable NUMERIC items (ints or floats), ascending.
+# String element sorting from the Python doctests is NOT ported: demoniC's
+# `>` operator is numeric-only (`operator Gt is not defined for str`).
+
+fn bubble_sort_iterative(collection: list) -> list {
+    let !c = collection
+    let length = list_len(c)
+    let !i = length - 1
+    let !active = true
+    while i >= 0 {
+        if active {
+            let !swapped = false
+            let !j = 0
+            while j < i {
+                let a = list_get(c, j)
+                let b = list_get(c, j + 1)
+                if a > b {
+                    swapped = true
+                    c = list_set(c, j, b)
+                    c = list_set(c, j + 1, a)
+                }
+                j = j + 1
+            }
+            if !swapped {
+                active = false
+            }
+        }
+        i = i - 1
+    }
+    c
+}
+
+fn bubble_sort_recursive(collection: list) -> list {
+    let !c = collection
+    let length = list_len(c)
+    let !swapped = false
+    let !i = 0
+    while i < length - 1 {
+        let a = list_get(c, i)
+        let b = list_get(c, i + 1)
+        if a > b {
+            c = list_set(c, i, b)
+            c = list_set(c, i + 1, a)
+            swapped = true
+        }
+        i = i + 1
+    }
+    if swapped {
+        bubble_sort_recursive(c)
+    } else {
+        c
+    }
+}
+
+# --- helpers for tests: element-wise equality of two lists ---
+fn lists_eq(a: list, b: list) -> bool {
+    if list_len(a) != list_len(b) {
+        false
+    } else {
+        let n = list_len(a)
+        let !ok = true
+        let !i = 0
+        while i < n {
+            if list_get(a, i) != list_get(b, i) {
+                ok = false
+            }
+            i = i + 1
+        }
+        ok
+    }
+}
+
+fn lists_eq_f(a: list, b: list) -> bool {
+    let n = list_len(a)
+    let !ok = list_len(a) == list_len(b)
+    let !i = 0
+    while i < n {
+        if !isclose(list_get(a, i), list_get(b, i)) { ok = false }
+        i = i + 1
+    }
+    ok
+}
+
+fn test_iter_basic() -> bool {
+    let r = bubble_sort_iterative(list(0, 5, 2, 3, 2))
+    lists_eq(r, list(0, 2, 2, 3, 5))
+}
+fn test_iter_neg() -> bool {
+    let r = bubble_sort_iterative(list(-2, -45, -5))
+    lists_eq(r, list(-45, -5, -2))
+}
+fn test_iter_mixed() -> bool {
+    let r = bubble_sort_iterative(list(-23, 0, 6, -4, 34))
+    lists_eq(r, list(-23, -4, 0, 6, 34))
+}
+fn test_iter_sorted() -> bool {
+    let r = bubble_sort_iterative(list(1, 2, 3, 4))
+    lists_eq(r, list(1, 2, 3, 4))
+}
+fn test_iter_dup() -> bool {
+    let r = bubble_sort_iterative(list(3, 3, 3, 3))
+    lists_eq(r, list(3, 3, 3, 3))
+}
+fn test_iter_single() -> bool {
+    let r = bubble_sort_iterative(list(56))
+    lists_eq(r, list(56))
+}
+
+fn test_rec_basic() -> bool {
+    let r = bubble_sort_recursive(list(0, 5, 2, 3, 2))
+    lists_eq(r, list(0, 2, 2, 3, 5))
+}
+fn test_rec_neg() -> bool {
+    let r = bubble_sort_recursive(list(-2, -45, -5))
+    lists_eq(r, list(-45, -5, -2))
+}
+fn test_rec_mixed() -> bool {
+    let r = bubble_sort_recursive(list(-23, 0, 6, -4, 34))
+    lists_eq(r, list(-23, -4, 0, 6, 34))
+}
+fn test_rec_single() -> bool {
+    let r = bubble_sort_recursive(list(56))
+    lists_eq(r, list(56))
+}
+
+fn test_iter_float() -> bool {
+    let r = bubble_sort_iterative(list(1.1, 3.3, 5.5, 7.7, 2.2, 4.4, 6.6))
+    lists_eq_f(r, list(1.1, 2.2, 3.3, 4.4, 5.5, 6.6, 7.7))
+}
+fn test_rec_float() -> bool {
+    let r = bubble_sort_recursive(list(1.1, 3.3, 5.5, 7.7, 2.2, 4.4, 6.6))
+    lists_eq_f(r, list(1.1, 2.2, 3.3, 4.4, 5.5, 6.6, 7.7))
+}

@@ -1,0 +1,192 @@
+# Hamming code encode/decode, ported from TheAlgorithms/Python hash_hamming_code.py
+# Bits are carried as '0'/'1' characters in strings. s[i] is an int codepoint:
+#   '0' == 48, '1' == 49, so (s[i]-48) is the bit value 0/1.
+#
+# A stream position (1-based) is a PARITY slot iff it is a power of two AND we
+# have not yet placed all `size_par` parity bits (Python's `qtd_bp < size_par`
+# guard). Everything else is a DATA slot. Note: a high power of two like 16 can
+# be a DATA slot once size_par parity bits are already used.
+
+fn is_pow2(p: i64) -> bool {
+    (p & (p - 1)) == 0
+}
+
+# encode: data = string of data bits, size_par parity bits.
+# returns the transmitted string (length size_par + len(data)).
+fn emitter_converter(size_par: i64, data: str) -> str {
+    let ndata = len(data)
+    let total = size_par + ndata
+
+    # data_ord[pos-1]: the data bit value (0/1) at that position, or -1 if parity.
+    let !data_ord = forge.zeros[f32, [256]]
+    let !cont_data = 0
+    let !qtd_bp = 0
+    for x in 1..(total + 1) {
+        let !is_par = false
+        if qtd_bp < size_par { if is_pow2(x) { is_par = true } }
+        if is_par {
+            data_ord[x - 1] = -1.0
+            qtd_bp = qtd_bp + 1
+        } else {
+            data_ord[x - 1] = to_float(data[cont_data] - 48)
+            cont_data = cont_data + 1
+        }
+    }
+
+    # parity[bp-1] for bp in 1..size_par : XOR (mod 2 count) of data bits at
+    # positions whose bit (bp-1) is set.
+    let !parity = forge.zeros[f32, [64]]
+    for bp in 1..(size_par + 1) {
+        let !cont_bo = 0
+        for pos in 1..(total + 1) {
+            let v = data_ord[pos - 1]
+            if v >= 0.0 {
+                let bit = (pos / (2 ** (bp - 1))) % 2
+                if bit == 1 {
+                    if v == 1.0 { cont_bo = cont_bo + 1 }
+                }
+            }
+        }
+        parity[bp - 1] = to_float(cont_bo % 2)
+    }
+
+    # mount: parity slots take parity bits in order, data slots take their data bit
+    let !out = ""
+    let !cont_bp = 0
+    for pos in 1..(total + 1) {
+        let v = data_ord[pos - 1]
+        if v < 0.0 {
+            let pv = parity[cont_bp]
+            cont_bp = cont_bp + 1
+            if pv == 1.0 { out = out + "1" } else { out = out + "0" }
+        } else {
+            if v == 1.0 { out = out + "1" } else { out = out + "0" }
+        }
+    }
+    out
+}
+
+# decode: extract the data bits (non-parity stream positions) from the
+# transmitted string, using the same capped power-of-two template.
+fn receptor_extract(size_par: i64, data: str) -> str {
+    let total = len(data)
+    let !out = ""
+    let !qtd_bp = 0
+    for pos in 1..(total + 1) {
+        let !is_par = false
+        if qtd_bp < size_par { if is_pow2(pos) { is_par = true } }
+        if is_par {
+            qtd_bp = qtd_bp + 1
+        } else {
+            let c = data[pos - 1]
+            if c == 49 { out = out + "1" } else { out = out + "0" }
+        }
+    }
+    out
+}
+
+# decode integrity ack: recompute parity from the extracted data bits and
+# compare to the parity bits received in the stream.
+fn receptor_ack(size_par: i64, data: str) -> bool {
+    let total = len(data)
+
+    # collect the data bit values (non-parity stream slots) and the received
+    # parity bits, in stream order, with the capped power-of-two template.
+    let !dvals = forge.zeros[f32, [256]]
+    let !nd = 0
+    let !prec = forge.zeros[f32, [64]]
+    let !np = 0
+    let !qtd_bp = 0
+    for pos in 1..(total + 1) {
+        let !is_par = false
+        if qtd_bp < size_par { if is_pow2(pos) { is_par = true } }
+        if is_par {
+            prec[np] = to_float(data[pos - 1] - 48)
+            np = np + 1
+            qtd_bp = qtd_bp + 1
+        } else {
+            dvals[nd] = to_float(data[pos - 1] - 48)
+            nd = nd + 1
+        }
+    }
+
+    # rebuild data_ord over positions 1..(size_par+nd) with the same template.
+    let total2 = size_par + nd
+    let !data_ord = forge.zeros[f32, [256]]
+    let !ci = 0
+    let !qb2 = 0
+    for x in 1..(total2 + 1) {
+        let !is_par2 = false
+        if qb2 < size_par { if is_pow2(x) { is_par2 = true } }
+        if is_par2 {
+            data_ord[x - 1] = -1.0
+            qb2 = qb2 + 1
+        } else {
+            data_ord[x - 1] = dvals[ci]
+            ci = ci + 1
+        }
+    }
+
+    # recompute parity
+    let !parity = forge.zeros[f32, [64]]
+    for bp in 1..(size_par + 1) {
+        let !cont_bo = 0
+        for pos in 1..(total2 + 1) {
+            let v = data_ord[pos - 1]
+            if v >= 0.0 {
+                let bit = (pos / (2 ** (bp - 1))) % 2
+                if bit == 1 {
+                    if v == 1.0 { cont_bo = cont_bo + 1 }
+                }
+            }
+        }
+        parity[bp - 1] = to_float(cont_bo % 2)
+    }
+
+    # compare received parity to recomputed parity
+    let !ok = true
+    for i in 0..size_par {
+        if prec[i] != parity[i] { ok = false }
+    }
+    ok
+}
+
+fn test_emitter() -> bool {
+    emitter_converter(4, "101010111111") == "1111010010111111"
+}
+
+fn test_emitter2() -> bool {
+    emitter_converter(3, "10110") == "01100110"
+}
+
+fn test_emitter3() -> bool {
+    emitter_converter(4, "00000000") == "000000000000"
+}
+
+fn test_extract() -> bool {
+    receptor_extract(4, "1111010010111111") == "101010111111"
+}
+
+fn test_extract2() -> bool {
+    receptor_extract(3, "01100110") == "10110"
+}
+
+fn test_ack_true() -> bool {
+    receptor_ack(4, "1111010010111111") == true
+}
+
+fn test_ack_corrupt() -> bool {
+    # python reports True here (a single data-bit flip leaves the recomputed
+    # parity matching the unchanged received parity stream in this case)
+    receptor_ack(4, "1111010010111110") == true
+}
+
+fn test_ack_false() -> bool {
+    # flip parity bit at stream position 1 -> integrity check fails
+    receptor_ack(4, "0111010010111111") == false
+}
+
+fn test_roundtrip() -> bool {
+    let enc = emitter_converter(4, "101010111111")
+    receptor_extract(4, enc) == "101010111111"
+}

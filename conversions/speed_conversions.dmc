@@ -1,0 +1,43 @@
+# Convert speed units (port of TheAlgorithms convert_speed)
+# speed_chart (unit_from multiplier) and speed_chart_inverse (unit_to multiplier)
+
+fn speed_chart(unit: str) -> f32 {
+    if unit == "km/h" { 1.0 }
+    else if unit == "m/s" { 3.6 }
+    else if unit == "mph" { 1.609344 }
+    else if unit == "knot" { 1.852 }
+    else { 0.0 }
+}
+
+fn speed_chart_inverse(unit: str) -> f32 {
+    if unit == "km/h" { 1.0 }
+    else if unit == "m/s" { 0.277777778 }
+    else if unit == "mph" { 0.621371192 }
+    else if unit == "knot" { 0.539956803 }
+    else { 0.0 }
+}
+
+# round to 3 decimal places (half-up via floor(x + 0.5))
+fn round3(x: f32) -> f32 {
+    floor(x * 1000.0 + 0.5) / 1000.0
+}
+
+fn convert_speed(speed: f32, unit_from: str, unit_to: str) -> f32 {
+    round3(speed * speed_chart(unit_from) * speed_chart_inverse(unit_to))
+}
+
+fn approx(a: f32, b: f32) -> bool {
+    let d = a - b
+    let ad = if d < 0.0 { 0.0 - d } else { d }
+    ad < 0.0005
+}
+
+fn test_convert_speed() -> bool {
+    approx(convert_speed(100.0, "km/h", "m/s"), 27.778) &&
+    approx(convert_speed(100.0, "m/s", "km/h"), 360.0) &&
+    approx(convert_speed(100.0, "mph", "knot"), 86.898) &&
+    approx(convert_speed(100.0, "knot", "mph"), 115.078) &&
+    approx(convert_speed(100.0, "m/s", "mph"), 223.694) &&
+    approx(convert_speed(100.0, "km/h", "mph"), 62.137) &&
+    approx(convert_speed(100.0, "knot", "km/h"), 185.2)
+}

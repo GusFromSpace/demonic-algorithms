@@ -1,0 +1,76 @@
+# XOR-cipher (port of TheAlgorithms/Python cipher/xor_cipher.py)
+# encrypt_string / decrypt_string are identical (XOR is its own inverse).
+# Semantics: effective key = (key != 0) ? key : 1, then key %= 256;
+# each output char = chr(ord(ch) ^ key).
+
+fn encrypt_string(content: str, key: i64) -> str {
+    let !k = if key != 0 { key } else { 1 }
+    k = k % 256
+    let n = len(content)
+    let !out = ""
+    let !i = 0
+    while i < n {
+        out = out + chr(content[i] ^ k)
+        i = i + 1
+    }
+    out
+}
+
+fn decrypt_string(content: str, key: i64) -> str {
+    let !k = if key != 0 { key } else { 1 }
+    k = k % 256
+    let n = len(content)
+    let !out = ""
+    let !i = 0
+    while i < n {
+        out = out + chr(content[i] ^ k)
+        i = i + 1
+    }
+    out
+}
+
+fn test_encrypt_empty() -> bool {
+    len(encrypt_string("", 5)) == 0
+}
+
+fn test_encrypt_key1() -> bool {
+    let r = encrypt_string("hallo welt", 1)
+    len(r) == 10 && r[0] == 105 && r[1] == 96 && r[2] == 109 && r[3] == 109
+        && r[4] == 110 && r[5] == 33 && r[6] == 118 && r[7] == 100
+        && r[8] == 109 && r[9] == 117
+}
+
+fn test_encrypt_key32() -> bool {
+    let r = encrypt_string("HALLO WELT", 32)
+    len(r) == 10 && r[0] == 104 && r[1] == 97 && r[2] == 108 && r[3] == 108
+        && r[4] == 111 && r[5] == 0 && r[6] == 119 && r[7] == 101
+        && r[8] == 108 && r[9] == 116
+}
+
+fn test_encrypt_key256() -> bool {
+    let r = encrypt_string("hallo welt", 256)
+    len(r) == 10 && r[0] == 104 && r[1] == 97 && r[2] == 108 && r[3] == 108
+        && r[4] == 111 && r[5] == 32 && r[6] == 119 && r[7] == 101
+        && r[8] == 108 && r[9] == 116
+}
+
+fn test_encrypt_key67() -> bool {
+    let r = encrypt_string("hallo welt", 67)
+    len(r) == 10 && r[0] == 43 && r[1] == 34 && r[2] == 47 && r[3] == 47
+        && r[4] == 44 && r[5] == 99 && r[6] == 52 && r[7] == 38
+        && r[8] == 47 && r[9] == 55
+}
+
+fn test_decrypt_roundtrip() -> bool {
+    # XOR is its own inverse: decrypt(encrypt(x)) == x
+    let enc = encrypt_string("hallo welt", 67)
+    let dec = decrypt_string(enc, 67)
+    len(dec) == 10 && dec[0] == 104 && dec[1] == 97 && dec[2] == 108
+        && dec[5] == 32 && dec[9] == 116
+}
+
+fn test_decrypt_key0_uses_1() -> bool {
+    # key 0 falls back to 1
+    let r = decrypt_string("hallo welt", 0)
+    r[0] == 105 && r[5] == 33
+}

@@ -1,0 +1,41 @@
+# ROT13 / Caesar cipher  (port of TheAlgorithms/Python ciphers/rot13.py)
+# Shifts letters by n (default 13 in the source; demoniC has no default args,
+# so n is an explicit param). Non-letters pass through unchanged.
+# s[i] is the int CODEPOINT: 'A'==65, 'Z'==90, 'a'==97, 'z'==122.
+
+fn dencrypt(s: str, n: i64) -> str {
+    let !out = ""
+    let L = len(s)
+    for i in 0..L {
+        let c = s[i]
+        if c >= 65 && c <= 90 {
+            out = out + chr(65 + (c - 65 + n) % 26)
+        } else if c >= 97 && c <= 122 {
+            out = out + chr(97 + (c - 97 + n) % 26)
+        } else {
+            out = out + chr(c)
+        }
+    }
+    out
+}
+
+# --- numeric gate: references computed with python3 source ---
+
+fn test_dencrypt_msg() -> bool {
+    let msg = "My secret bank account number is 173-52946 so dont tell anyone!!"
+    let enc = dencrypt(msg, 13)
+    enc == "Zl frperg onax nppbhag ahzore vf 173-52946 fb qbag gryy nalbar!!"
+}
+
+fn test_dencrypt_roundtrip() -> bool {
+    let msg = "My secret bank account number is 173-52946 so dont tell anyone!!"
+    dencrypt(dencrypt(msg, 13), 13) == msg
+}
+
+fn test_dencrypt_hello() -> bool {
+    dencrypt("Hello, World!", 13) == "Uryyb, Jbeyq!"
+}
+
+fn test_dencrypt_shift5() -> bool {
+    dencrypt("abcXYZ", 5) == "fghCDE"
+}

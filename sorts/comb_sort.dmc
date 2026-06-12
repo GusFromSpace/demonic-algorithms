@@ -1,0 +1,56 @@
+# Comb sort: improves on bubble sort by using a shrinking gap.
+# Ported from TheAlgorithms/Python sorts/comb_sort.py
+fn comb_sort(data: list) -> list {
+    let !out = data
+    let n = list_len(out)
+    let !gap = n
+    let !completed = false
+
+    while !completed {
+        gap = to_int(to_float(gap) / 1.3)
+        if gap <= 1 {
+            completed = true
+        }
+        let !index = 0
+        while index + gap < n {
+            let a = list_get(out, index)
+            let b = list_get(out, index + gap)
+            if a > b {
+                out = list_set(out, index, b)
+                out = list_set(out, index + gap, a)
+                completed = false
+            }
+            index = index + 1
+        }
+    }
+    out
+}
+
+fn test_comb_sort_basic() -> bool {
+    let r = comb_sort(list(0, 5, 3, 2, 2))
+    list_get(r, 0) == 0 && list_get(r, 1) == 2 && list_get(r, 2) == 2
+        && list_get(r, 3) == 3 && list_get(r, 4) == 5
+}
+
+fn test_comb_sort_neg() -> bool {
+    let r = comb_sort(list(99, 45, -7, 8, 2, 0, -15, 3))
+    list_get(r, 0) == -15 && list_get(r, 1) == -7 && list_get(r, 2) == 0
+        && list_get(r, 3) == 2 && list_get(r, 4) == 3 && list_get(r, 5) == 8
+        && list_get(r, 6) == 45 && list_get(r, 7) == 99
+}
+
+fn test_comb_sort_rev() -> bool {
+    let r = comb_sort(list(5, 4, 3, 2, 1))
+    list_get(r, 0) == 1 && list_get(r, 1) == 2 && list_get(r, 2) == 3
+        && list_get(r, 3) == 4 && list_get(r, 4) == 5
+}
+
+fn test_comb_sort_single() -> bool {
+    let r = comb_sort(list(1))
+    list_len(r) == 1 && list_get(r, 0) == 1
+}
+
+fn test_comb_sort_pair() -> bool {
+    let r = comb_sort(list(3, 1))
+    list_get(r, 0) == 1 && list_get(r, 1) == 3
+}

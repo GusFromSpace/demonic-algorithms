@@ -1,0 +1,23 @@
+# sdbm hash (64-bit masked variant of the public-domain sdbm string hash).
+# Source: TheAlgorithms/Python hashes/sdbm.py. The Python original returns an
+# UNBOUNDED bigint (hash grows without limit); i64/u64 cannot hold the full-width
+# value, so this is the standard 64-bit variant: every step wraps modulo 2^64,
+# which demoniC u64 does natively. Matches Python:
+#   h = (ord(c) + (h<<6) + (h<<16) - h) & 0xFFFFFFFFFFFFFFFF
+# s[i] is the int codepoint == ord(c) for ASCII (the doctest inputs are ASCII).
+fn sdbm(plain_text: str) -> u64 {
+    let !hash_value: u64 = 0
+    let n = len(plain_text)
+    for i in 0..n {
+        let c: u64 = plain_text[i] as u64
+        hash_value = c + (hash_value << 6) + (hash_value << 16) - hash_value
+    }
+    hash_value
+}
+
+fn test_sdbm_algorithms() -> bool { sdbm("Algorithms") == 7428168923269278692 }
+fn test_sdbm_scramble()   -> bool { sdbm("scramble bits") == 1768711675065996441 }
+fn test_sdbm_single()     -> bool { sdbm("a") == 97 }
+fn test_sdbm_empty()      -> bool { sdbm("") == 0 }
+fn test_sdbm_hello()      -> bool { sdbm("hello") == 7416051667693574450 }
+fn test_sdbm_xyz()        -> bool { sdbm("xyz") == 516395393721 }

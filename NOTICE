@@ -1,0 +1,13 @@
+demonic-algorithms
+==================
+
+demoniC ports of algorithms from TheAlgorithms/Python.
+
+  Upstream:  TheAlgorithms/Python
+  Source:    https://github.com/TheAlgorithms/Python
+  License:   MIT (Copyright (c) 2016-2022 TheAlgorithms and contributors)
+
+Every program here is a demoniC translation of an algorithm from
+TheAlgorithms/Python, kept under the same MIT license. This collection is
+PARENT-PURE: it contains ONLY TheAlgorithms-derived ports (44 of them) —
+nothing from any other source is mixed in.

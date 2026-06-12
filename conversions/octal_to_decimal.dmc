@@ -1,0 +1,123 @@
+# Convert an octal string to its decimal equivalent.
+# Ported from TheAlgorithms/Python conv_octal_to_decimal.py
+# demoniC has no exceptions: is_octal(s) reports validity (the ValueError cases),
+# oct_to_decimal(s) returns the decimal value assuming valid input.
+
+# Find first non-space index (leading strip)
+fn lstrip_start(s) -> i64 {
+    let n = len(s)
+    let !i = 0
+    let !done = false
+    while i < n && done == false {
+        if s[i] == 32 {
+            i = i + 1
+        } else {
+            done = true
+        }
+    }
+    i
+}
+
+# Find one-past last non-space index (trailing strip)
+fn rstrip_end(s) -> i64 {
+    let n = len(s)
+    let !j = n
+    let !done = false
+    while j > 0 && done == false {
+        if s[j - 1] == 32 {
+            j = j - 1
+        } else {
+            done = true
+        }
+    }
+    j
+}
+
+# Validity: after stripping spaces, optional leading '-', then >=1 octal digits (0-7).
+fn is_octal(s) -> bool {
+    let lo = lstrip_start(s)
+    let hi = rstrip_end(s)
+    let !i = lo
+    if i >= hi {
+        # empty after strip
+        false
+    } else {
+        # optional leading '-'
+        if s[i] == 45 {
+            i = i + 1
+        }
+        if i >= hi {
+            # only a '-' (or empty) -> invalid
+            false
+        } else {
+            let !ok = true
+            while i < hi {
+                let c = s[i]
+                if c >= 48 {
+                    if c <= 55 {
+                        # valid octal digit
+                    } else {
+                        ok = false
+                    }
+                } else {
+                    ok = false
+                }
+                i = i + 1
+            }
+            ok
+        }
+    }
+}
+
+# Convert (assumes is_octal(s) is true).
+fn oct_to_decimal(s) -> i64 {
+    let lo = lstrip_start(s)
+    let hi = rstrip_end(s)
+    let !i = lo
+    let !neg = false
+    if s[i] == 45 {
+        neg = true
+        i = i + 1
+    }
+    let !acc = 0
+    while i < hi {
+        acc = 8 * acc + (s[i] - 48)
+        i = i + 1
+    }
+    if neg {
+        -acc
+    } else {
+        acc
+    }
+}
+
+fn test_oct_to_decimal() -> bool {
+    let r1 = oct_to_decimal("1") == 1
+    let r2 = oct_to_decimal("-1") == -1
+    let r3 = oct_to_decimal("12") == 10
+    let r4 = oct_to_decimal(" 12   ") == 10
+    let r5 = oct_to_decimal("-45") == -37
+    let r6 = oct_to_decimal("0") == 0
+    let r7 = oct_to_decimal("-4055") == -2093
+    r1 && r2 && r3 && r4 && r5 && r6 && r7
+}
+
+fn test_is_octal() -> bool {
+    # valid
+    let v1 = is_octal("1")
+    let v2 = is_octal("-1")
+    let v3 = is_octal(" 12   ")
+    let v4 = is_octal("0")
+    let v5 = is_octal("-4055")
+    # invalid
+    let b1 = is_octal("") == false
+    let b2 = is_octal("-") == false
+    let b3 = is_octal("e") == false
+    let b4 = is_octal("8") == false
+    let b5 = is_octal("-e") == false
+    let b6 = is_octal("-8") == false
+    let b7 = is_octal("2-0Fm") == false
+    let b8 = is_octal("19") == false
+    let b9 = is_octal("   ") == false
+    v1 && v2 && v3 && v4 && v5 && b1 && b2 && b3 && b4 && b5 && b6 && b7 && b8 && b9
+}

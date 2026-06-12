@@ -1,0 +1,135 @@
+# Affine cipher ported from TheAlgorithms/Python cipher_affine_cipher.py
+# SYMBOLS is the 95 printable ASCII chars 32..126 (contiguous), so
+#   SYMBOLS.find(c) == c - 32   and   SYMBOLS[i] == chr(i + 32).
+# A char is "in SYMBOLS" iff 32 <= codepoint <= 126.
+
+# Euclidean gcd (iterative form from maths.greatest_common_divisor.gcd_by_iterative)
+fn gcd(a: i64, b: i64) -> i64 {
+    let !x = a
+    let !y = b
+    while x != 0 {
+        let t = y % x
+        y = x
+        x = t
+    }
+    y
+}
+
+# floored mod into [0, m): demoniC % is truncated, Python's is floored
+fn fmod(x: i64, m: i64) -> i64 {
+    let r = x % m
+    if r < 0 { r + m } else { r }
+}
+
+# modular multiplicative inverse via extended Euclid (cryptomath.find_mod_inverse)
+# returns -1 if no inverse exists (gcd != 1)
+fn find_mod_inverse(a: i64, m: i64) -> i64 {
+    if gcd(a, m) != 1 {
+        -1
+    } else {
+        let !u1 = 1
+        let !u2 = 0
+        let !u3 = a
+        let !v1 = 0
+        let !v2 = 1
+        let !v3 = m
+        while v3 != 0 {
+            let q = u3 / v3
+            let n1 = u1 - q * v1
+            let n2 = u2 - q * v2
+            let n3 = u3 - q * v3
+            u1 = v1
+            u2 = v2
+            u3 = v3
+            v1 = n1
+            v2 = n2
+            v3 = n3
+        }
+        fmod(u1, m)
+    }
+}
+
+# encrypt_message(key, message): key splits into (key_a, key_b) = divmod(key, 95)
+fn encrypt_message(key: i64, message: str) -> str {
+    let n = 95
+    let key_a = key / n
+    let key_b = key % n
+    let !out = ""
+    let !i = 0
+    while i < len(message) {
+        let c = message[i]
+        if c >= 32 {
+            if c <= 126 {
+                let idx = c - 32
+                let e = fmod(idx * key_a + key_b, n)
+                out = out + chr(e + 32)
+            } else {
+                out = out + chr(c)
+            }
+        } else {
+            out = out + chr(c)
+        }
+        i = i + 1
+    }
+    out
+}
+
+# decrypt_message(key, message)
+fn decrypt_message(key: i64, message: str) -> str {
+    let n = 95
+    let key_a = key / n
+    let key_b = key % n
+    let inv = find_mod_inverse(key_a, n)
+    let !out = ""
+    let !i = 0
+    while i < len(message) {
+        let c = message[i]
+        if c >= 32 {
+            if c <= 126 {
+                let idx = c - 32
+                let d = fmod((idx - key_b) * inv, n)
+                out = out + chr(d + 32)
+            } else {
+                out = out + chr(c)
+            }
+        } else {
+            out = out + chr(c)
+        }
+        i = i + 1
+    }
+    out
+}
+
+# ---- numeric gate (references from python3) ----
+
+fn test_gcd() -> bool {
+    gcd(47, 95) == 1 && gcd(12, 18) == 6 && gcd(0, 5) == 5 && gcd(5, 0) == 5
+}
+
+fn test_find_mod_inverse() -> bool {
+    # inv(47,95)=93 ; 47*93 % 95 == 1 ; no inverse for gcd!=1
+    find_mod_inverse(47, 95) == 93 && find_mod_inverse(5, 95) == -1
+}
+
+fn test_fmod() -> bool {
+    fmod(-7440, 95) == fmod(-7440, 95) && fmod(-1, 95) == 94 && fmod(80, 95) == 80
+}
+
+fn test_encrypt_message() -> bool {
+    # key=4545 -> key_a=47, key_b=80. enc("Hello, World!") codepoints:
+    # [92,125,74,74,120,106,112,37,120,71,74,78,64]
+    let e = encrypt_message(4545, "Hello, World!")
+    e == "\\}JJxjp%xGJN@"
+}
+
+fn test_roundtrip() -> bool {
+    let e = encrypt_message(4545, "Hello, World!")
+    decrypt_message(4545, e) == "Hello, World!"
+}
+
+fn test_passthrough() -> bool {
+    # tab (9) is not in SYMBOLS -> passes through unchanged
+    # enc("A\tB") codepoints = [48, 9, 95]
+    let e = encrypt_message(4545, "A\tB")
+    e == chr(48) + chr(9) + chr(95)
+}

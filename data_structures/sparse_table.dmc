@@ -1,0 +1,71 @@
+# Range Minimum Query via a sparse table (ported from TheAlgorithms/Python
+# ds_sparse_table.py). Python returns list[list[int]] for the table; demoniC
+# has no clean list-of-lists return, so the table is built INTERNALLY in a flat
+# [ROWS*N] tensor and the query is answered in one self-contained fn. This
+# preserves the algorithm: O(n log n) precompute of 2**j-length min-subsets, then
+# an O(1) query over two overlapping power-of-two windows.
+
+fn min_i(a: i64, b: i64) -> i64 {
+    if a < b { a } else { b }
+}
+
+# values: the static list (first n slots used). n: logical length.
+# answers min over [left, right] inclusive.
+fn rmq[CAP](values: Tensor[f32, [CAP]], n: i64, left: i64, right: i64) -> i64 {
+    # table flat [ROWS*STRIDE]; row j lives at offset j*32. 256 = 8 rows * 32 cols
+    # headroom (rows = floor(log2 n)+1 <= 8, cols = n <= 32).
+    let !table = forge.zeros[f32, [256]]
+
+    # row 0: min over subset of length 1 is the value itself
+    let !i = 0
+    while i < n {
+        table[i] = values[i]
+        i = i + 1
+    }
+
+    # compute min for all intervals of size (1 << j)
+    let !j = 1
+    while (1 << j) <= n {
+        let !k = 0
+        while (k + (1 << j) - 1) < n {
+            let left_half  = table[(j - 1) * 32 + k + (1 << (j - 1))]
+            let right_half = table[(j - 1) * 32 + k]
+            let lh = left_half as i64
+            let rh = right_half as i64
+            table[j * 32 + k] = to_float(min_i(lh, rh))
+            k = k + 1
+        }
+        j = j + 1
+    }
+
+    # query: highest power-of-two length within [left, right]
+    let q = floor(log2(to_float(right - left + 1))) as i64
+    let a = table[q * 32 + (right - (1 << q) + 1)] as i64
+    let b = table[q * 32 + left] as i64
+    min_i(a, b)
+}
+
+fn test_rmq_1() -> bool {
+    let v = [8.0, 1.0, 0.0, 3.0, 4.0, 9.0, 3.0, 0.0]
+    rmq(v, 7, 0, 4) == 0
+}
+fn test_rmq_2() -> bool {
+    let v = [8.0, 1.0, 0.0, 3.0, 4.0, 9.0, 3.0, 0.0]
+    rmq(v, 7, 4, 6) == 3
+}
+fn test_rmq_full() -> bool {
+    let v = [8.0, 1.0, 0.0, 3.0, 4.0, 9.0, 3.0, 0.0]
+    rmq(v, 7, 0, 6) == 0
+}
+fn test_rmq_single() -> bool {
+    let v = [3.0, 1.0, 9.0, 0.0]
+    rmq(v, 3, 2, 2) == 9
+}
+fn test_rmq_pair() -> bool {
+    let v = [3.0, 1.0, 9.0, 0.0]
+    rmq(v, 3, 0, 1) == 1
+}
+fn test_rmq_mid() -> bool {
+    let v = [5.0, 3.0, 7.0, 2.0, 8.0, 6.0, 1.0, 4.0]
+    rmq(v, 8, 1, 5) == 2
+}

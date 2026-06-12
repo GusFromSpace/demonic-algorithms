@@ -1,0 +1,165 @@
+# Trifid cipher ported from TheAlgorithms/Python cipher/trifid_cipher.py
+# Trigram of a letter = its position in the 27-char alphabet:
+#   idx -> (idx/9, (idx%9)/3, idx%3), each digit in 0..2 (printed +1).
+# Decrypt: trigram (a,b,c) in 0..2 -> idx = a*9 + b*3 + c.
+
+# Clean a string: drop spaces (code 32), uppercase ASCII a..z (97..122 -> -32).
+fn clean(s: str) -> str {
+    let !out = ""
+    let n = len(s)
+    for i in 0..n {
+        let c = s[i]
+        if c == 32 {
+            out = out
+        } else {
+            if c >= 97 {
+                if c <= 122 {
+                    out = out + chr(c - 32)
+                } else {
+                    out = out + chr(c)
+                }
+            } else {
+                out = out + chr(c)
+            }
+        }
+    }
+    out
+}
+
+# Index of character `ch` (a codepoint) in alphabet string; -1 if absent.
+fn alpha_index(alphabet: str, ch: i64) -> i64 {
+    let n = len(alphabet)
+    let !idx = -1
+    for i in 0..n {
+        if alphabet[i] == ch {
+            if idx == -1 {
+                idx = i
+            }
+        }
+    }
+    idx
+}
+
+# Encrypt a cleaned message with a cleaned 27-char alphabet and a period.
+fn encrypt_clean(message: str, alphabet: str, period: i64) -> str {
+    let n = len(message)
+    # Build the numeric string group-by-group: for each group emit
+    # all first-digits, then all second-digits, then all third-digits.
+    let !numeric = ""
+    let !i = 0
+    while i < n + 1 {
+        let !one = ""
+        let !two = ""
+        let !three = ""
+        let !j = i
+        let stop = if i + period < n { i + period } else { n }
+        while j < stop {
+            let idx = alpha_index(alphabet, message[j])
+            let a = idx / 9
+            let b = (idx % 9) / 3
+            let c = idx % 3
+            one = one + chr(a + 1 + 48)
+            two = two + chr(b + 1 + 48)
+            three = three + chr(c + 1 + 48)
+            j = j + 1
+        }
+        numeric = numeric + one + two + three
+        i = i + period
+    }
+    # Read trigrams 3 digits at a time -> alphabet letter.
+    let !out = ""
+    let m = len(numeric)
+    let !k = 0
+    while k < m {
+        let a = numeric[k] - 48 - 1
+        let b = numeric[k + 1] - 48 - 1
+        let c = numeric[k + 2] - 48 - 1
+        let idx = a * 9 + b * 3 + c
+        out = out + chr(alphabet[idx])
+        k = k + 3
+    }
+    out
+}
+
+# Decrypt a cleaned message with a cleaned 27-char alphabet and a period.
+fn decrypt_clean(message: str, alphabet: str, period: i64) -> str {
+    let n = len(message)
+    let !out = ""
+    let !i = 0
+    while i < n {
+        let stop = if i + period < n { i + period } else { n }
+        let plen = stop - i
+        # Build the trigram-digit string for this group (3*plen digits).
+        let !digs = ""
+        let !j = i
+        while j < stop {
+            let idx = alpha_index(alphabet, message[j])
+            let a = idx / 9
+            let b = (idx % 9) / 3
+            let c = idx % 3
+            digs = digs + chr(a + 1 + 48) + chr(b + 1 + 48) + chr(c + 1 + 48)
+            j = j + 1
+        }
+        # Re-split vertically: column p uses digs[p], digs[plen+p], digs[2*plen+p].
+        let !p = 0
+        while p < plen {
+            let a = digs[p] - 48 - 1
+            let b = digs[plen + p] - 48 - 1
+            let c = digs[2 * plen + p] - 48 - 1
+            let idx = a * 9 + b * 3 + c
+            out = out + chr(alphabet[idx])
+            p = p + 1
+        }
+        i = i + period
+    }
+    out
+}
+
+# Convenience: encrypt raw (uncleaned) message + alphabet.
+fn encrypt_message(message: str, alphabet: str, period: i64) -> str {
+    encrypt_clean(clean(message), clean(alphabet), period)
+}
+
+fn decrypt_message(message: str, alphabet: str, period: i64) -> str {
+    decrypt_clean(clean(message), clean(alphabet), period)
+}
+
+# ---- numeric gates (references from the Python source) ----
+
+fn test_clean() -> bool {
+    clean("I am a boy") == "IAMABOY"
+}
+
+fn test_alpha_index() -> bool {
+    let alpha = "ABCDEFGHIJKLMNOPQRSTUVWXYZ."
+    alpha_index(alpha, 65) == 0 && alpha_index(alpha, 67) == 2 && alpha_index(alpha, 46) == 26
+}
+
+fn test_encrypt_default() -> bool {
+    encrypt_message("I am a boy", "ABCDEFGHIJKLMNOPQRSTUVWXYZ.", 5) == "BCDGBQY"
+}
+
+fn test_encrypt_custom() -> bool {
+    encrypt_message("   aide toi le c  iel      ta id  era    ", "FELIXMARDSTBCGHJKNOPQUVWYZ+", 5) == "FMJFVOISSUFTFPUFEQQC"
+}
+
+fn test_encrypt_castle() -> bool {
+    encrypt_message("DEFEND THE EAST WALL OF THE CASTLE.", "EPSDUCVWYM.ZLKXNBTFGORIJHAQ", 5) == "SUEFECPHSEGYYJIXIMFOFOCEJLBSP"
+}
+
+fn test_decrypt_default() -> bool {
+    decrypt_message("BCDGBQY", "ABCDEFGHIJKLMNOPQRSTUVWXYZ.", 5) == "IAMABOY"
+}
+
+fn test_decrypt_custom() -> bool {
+    decrypt_message("FMJFVOISSUFTFPUFEQQC", "FELIXMARDSTBCGHJKNOPQUVWYZ+", 5) == "AIDETOILECIELTAIDERA"
+}
+
+fn test_decrypt_castle() -> bool {
+    decrypt_message("SUEFECPHSEGYYJIXIMFOFOCEJLBSP", "EPSDUCVWYM.ZLKXNBTFGORIJHAQ", 5) == "DEFENDTHEEASTWALLOFTHECASTLE."
+}
+
+fn test_roundtrip() -> bool {
+    let a = "EPSDUCVWYM.ZLKXNBTFGORIJHAQ"
+    decrypt_message(encrypt_message("HELLO WORLD.", a, 5), a, 5) == "HELLOWORLD."
+}

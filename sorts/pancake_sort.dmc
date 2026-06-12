@@ -1,0 +1,78 @@
+# Pancake sort, ported from TheAlgorithms/Python sorts/pancake_sort.py
+# Sorts a list ascending by repeatedly flipping prefixes.
+
+# Reverse the first k elements of xs (indices 0..k-1), return new list.
+fn flip_prefix(xs, k) {
+    let !out = xs
+    let !i = 0
+    let !j = k - 1
+    while i < j {
+        let a = list_get(out, i)
+        let b = list_get(out, j)
+        out = list_set(out, i, b)
+        out = list_set(out, j, a)
+        i = i + 1
+        j = j - 1
+    }
+    out
+}
+
+fn pancake_sort(arr) {
+    let !a = arr
+    let n = list_len(a)
+    let !cur = n
+    while cur > 1 {
+        # find index of max in a[0..cur-1]
+        let !mi = 0
+        let !mx = list_get(a, 0)
+        let !k = 1
+        while k < cur {
+            let v = list_get(a, k)
+            if v > mx {
+                mx = v
+                mi = k
+            }
+            k = k + 1
+        }
+        # bring max to front, then flip first cur elements to send it to cur-1
+        a = flip_prefix(a, mi + 1)
+        a = flip_prefix(a, cur)
+        cur = cur - 1
+    }
+    a
+}
+
+fn test_pancake_basic() -> bool {
+    let r = pancake_sort(list(0, 5, 3, 2, 2))
+    list_get(r, 0) == 0 &&
+    list_get(r, 1) == 2 &&
+    list_get(r, 2) == 2 &&
+    list_get(r, 3) == 3 &&
+    list_get(r, 4) == 5
+}
+
+fn test_pancake_empty() -> bool {
+    let r = pancake_sort(list())
+    list_len(r) == 0
+}
+
+fn test_pancake_negatives() -> bool {
+    let r = pancake_sort(list(-2, -5, -45))
+    list_get(r, 0) == -45 &&
+    list_get(r, 1) == -5 &&
+    list_get(r, 2) == -2
+}
+
+fn test_pancake_reverse() -> bool {
+    let r = pancake_sort(list(5, 4, 3, 2, 1))
+    list_get(r, 0) == 1 &&
+    list_get(r, 1) == 2 &&
+    list_get(r, 2) == 3 &&
+    list_get(r, 3) == 4 &&
+    list_get(r, 4) == 5
+}
+
+fn test_pancake_single() -> bool {
+    let r = pancake_sort(list(42))
+    list_len(r) == 1 && list_get(r, 0) == 42
+}

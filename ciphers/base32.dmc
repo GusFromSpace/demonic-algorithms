@@ -1,0 +1,148 @@
+# Base32 encoding / decoding — ported from TheAlgorithms/Python cipher_base32.py
+# https://en.wikipedia.org/wiki/Base32
+# Charset: "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
+#   index 0..25  -> 'A'..'Z'  (codes 65..90)
+#   index 26..31 -> '2'..'7'  (codes 50..55)
+
+# charset symbol for a 5-bit value 0..31
+fn b32_char(i: i64) -> i64 {
+    if i < 26 { 65 + i } else { 50 + (i - 26) }
+}
+
+# charset index for a symbol codepoint
+fn b32_index(c: i64) -> i64 {
+    if c >= 65 { c - 65 } else { 26 + (c - 50) }
+}
+
+fn base32_encode(data: str) -> str {
+    let n = len(data)
+    # build the bit stream: 8 bits per input byte, MSB first
+    let !bits = list()
+    let !i = 0
+    while i < n {
+        let c = data[i]
+        let !b = 7
+        while b >= 0 {
+            # bit b of c
+            let v = (c / (2 ** b)) - ((c / (2 ** (b + 1))) * 2)
+            bits = list_push(bits, v)
+            b = b - 1
+        }
+        i = i + 1
+    }
+    # pad bit length up to 5 * ((len // 5) + 1)  (always adds a full group)
+    let nb = list_len(bits)
+    let target = 5 * ((nb / 5) + 1)
+    let !p = nb
+    while p < target {
+        bits = list_push(bits, 0)
+        p = p + 1
+    }
+    # consume 5-bit chunks -> charset symbols
+    let !out = ""
+    let total = list_len(bits)
+    let !k = 0
+    while k < total {
+        let val = list_get(bits, k) * 16
+            + list_get(bits, k + 1) * 8
+            + list_get(bits, k + 2) * 4
+            + list_get(bits, k + 3) * 2
+            + list_get(bits, k + 4)
+        out = out + chr(b32_char(val))
+        k = k + 5
+    }
+    # pad result with '=' up to 8 * ((len // 8) + 1)
+    let rlen = len(out)
+    let rtarget = 8 * ((rlen / 8) + 1)
+    let !q = rlen
+    while q < rtarget {
+        out = out + "="
+        q = q + 1
+    }
+    out
+}
+
+fn base32_decode(data: str) -> str {
+    let n = len(data)
+    # build the bit stream: 5 bits per symbol, skipping '=' (code 61) padding
+    let !bits = list()
+    let !i = 0
+    while i < n {
+        let c = data[i]
+        if c == 61 {
+            i = i
+        } else {
+            let idx = b32_index(c)
+            let !b = 4
+            while b >= 0 {
+                let v = (idx / (2 ** b)) - ((idx / (2 ** (b + 1))) * 2)
+                bits = list_push(bits, v)
+                b = b - 1
+            }
+        }
+        i = i + 1
+    }
+    # consume 8-bit chunks -> output bytes (drops the trailing partial group)
+    let !out = ""
+    let total = list_len(bits)
+    let groups = total / 8
+    let !g = 0
+    while g < groups {
+        let base = g * 8
+        let val = list_get(bits, base) * 128
+            + list_get(bits, base + 1) * 64
+            + list_get(bits, base + 2) * 32
+            + list_get(bits, base + 3) * 16
+            + list_get(bits, base + 4) * 8
+            + list_get(bits, base + 5) * 4
+            + list_get(bits, base + 6) * 2
+            + list_get(bits, base + 7)
+        out = out + chr(val)
+        g = g + 1
+    }
+    out
+}
+
+fn test_b32_char() -> bool {
+    b32_char(0) == 65 && b32_char(25) == 90 && b32_char(26) == 50 && b32_char(31) == 55
+}
+
+fn test_b32_index() -> bool {
+    b32_index(65) == 0 && b32_index(90) == 25 && b32_index(50) == 26 && b32_index(55) == 31
+}
+
+fn test_encode_hello() -> bool {
+    base32_encode("Hello World!") == "JBSWY3DPEBLW64TMMQQQ===="
+}
+
+fn test_encode_123456() -> bool {
+    base32_encode("123456") == "GEZDGNBVGY======"
+}
+
+fn test_encode_long() -> bool {
+    base32_encode("some long complex string") == "ONXW2ZJANRXW4ZZAMNXW24DMMV4CA43UOJUW4ZY="
+}
+
+fn test_encode_hi() -> bool {
+    base32_encode("Hi") == "JBUQ===="
+}
+
+fn test_decode_hello() -> bool {
+    base32_decode("JBSWY3DPEBLW64TMMQQQ====") == "Hello World!"
+}
+
+fn test_decode_123456() -> bool {
+    base32_decode("GEZDGNBVGY======") == "123456"
+}
+
+fn test_decode_long() -> bool {
+    base32_decode("ONXW2ZJANRXW4ZZAMNXW24DMMV4CA43UOJUW4ZY=") == "some long complex string"
+}
+
+fn test_decode_hi() -> bool {
+    base32_decode("JBUQ====") == "Hi"
+}
+
+fn test_roundtrip() -> bool {
+    base32_decode(base32_encode("Base32 roundtrip!")) == "Base32 roundtrip!"
+}

@@ -1,0 +1,67 @@
+# Word Break (LeetCode): can `string` be segmented into a sequence of `words`?
+# Same word may be reused. Source: TheAlgorithms/Python dynamic_programming/word_break.py
+# Original uses Trie + memoized recursion; the trie is just a lookup optimization,
+# so this port keeps the equivalent recursive DP and matches words directly.
+
+# Does `word` occur in `string` starting at position `start`?
+fn matches_at(string: str, start: i64, word: str) -> bool {
+    let n = len(string)
+    let m = len(word)
+    if start + m > n {
+        false
+    } else {
+        let !ok = true
+        let !j = 0
+        while j < m {
+            if string[start + j] == word[j] {
+                # still matching
+            } else {
+                ok = false
+            }
+            j = j + 1
+        }
+        ok
+    }
+}
+
+# Is string[index:] segmentable using `words`?
+fn is_breakable(string: str, words, index: i64) -> bool {
+    let slen = len(string)
+    if index == slen {
+        true
+    } else {
+        let nwords = list_len(words)
+        let !found = false
+        let !i = 0
+        while i < nwords {
+            if found {
+                # already done
+            } else {
+                let w = list_get(words, i)
+                if matches_at(string, index, w) {
+                    if is_breakable(string, words, index + len(w)) {
+                        found = true
+                    }
+                }
+            }
+            i = i + 1
+        }
+        found
+    }
+}
+
+fn word_break(string: str, words) -> bool {
+    if len(string) == 0 {
+        false
+    } else {
+        is_breakable(string, words, 0)
+    }
+}
+
+fn test_applepenapple() -> bool { word_break("applepenapple", list("apple","pen")) == true }
+fn test_catsandog() -> bool { word_break("catsandog", list("cats","dog","sand","and","cat")) == false }
+fn test_cars() -> bool { word_break("cars", list("car","ca","rs")) == true }
+fn test_abc_letters() -> bool { word_break("abc", list("a","b","c")) == true }
+fn test_leetcode() -> bool { word_break("leetcode", list("leet","code")) == true }
+fn test_empty_string() -> bool { word_break("", list("a")) == false }
+fn test_no_words() -> bool { word_break("abc", list("a","b")) == false }

@@ -1,0 +1,156 @@
+# Temperature conversions, ported from TheAlgorithms/Python
+# conversions/temperature_conversions.py
+# Python's `round(x, ndigits)` -> round_n(x, n) = round(x * 10**n) / 10**n
+# (demoniC `round` is round-to-nearest-integer)
+
+fn round_n(x: f32, n: i64) -> f32 {
+    let scale = (10 ** n) as f32
+    round(x * scale) / scale
+}
+
+fn celsius_to_fahrenheit(celsius: f32, ndigits: i64) -> f32 {
+    round_n((celsius * 9.0 / 5.0) + 32.0, ndigits)
+}
+
+fn celsius_to_kelvin(celsius: f32, ndigits: i64) -> f32 {
+    round_n(celsius + 273.15, ndigits)
+}
+
+fn celsius_to_rankine(celsius: f32, ndigits: i64) -> f32 {
+    round_n((celsius * 9.0 / 5.0) + 491.67, ndigits)
+}
+
+fn fahrenheit_to_celsius(fahrenheit: f32, ndigits: i64) -> f32 {
+    round_n((fahrenheit - 32.0) * 5.0 / 9.0, ndigits)
+}
+
+fn fahrenheit_to_kelvin(fahrenheit: f32, ndigits: i64) -> f32 {
+    round_n(((fahrenheit - 32.0) * 5.0 / 9.0) + 273.15, ndigits)
+}
+
+fn fahrenheit_to_rankine(fahrenheit: f32, ndigits: i64) -> f32 {
+    round_n(fahrenheit + 459.67, ndigits)
+}
+
+fn kelvin_to_celsius(kelvin: f32, ndigits: i64) -> f32 {
+    round_n(kelvin - 273.15, ndigits)
+}
+
+fn kelvin_to_fahrenheit(kelvin: f32, ndigits: i64) -> f32 {
+    round_n(((kelvin - 273.15) * 9.0 / 5.0) + 32.0, ndigits)
+}
+
+fn kelvin_to_rankine(kelvin: f32, ndigits: i64) -> f32 {
+    round_n(kelvin * 9.0 / 5.0, ndigits)
+}
+
+fn rankine_to_celsius(rankine: f32, ndigits: i64) -> f32 {
+    round_n((rankine - 491.67) * 5.0 / 9.0, ndigits)
+}
+
+fn rankine_to_fahrenheit(rankine: f32, ndigits: i64) -> f32 {
+    round_n(rankine - 459.67, ndigits)
+}
+
+fn rankine_to_kelvin(rankine: f32, ndigits: i64) -> f32 {
+    round_n(rankine * 5.0 / 9.0, ndigits)
+}
+
+fn reaumur_to_kelvin(reaumur: f32, ndigits: i64) -> f32 {
+    round_n(reaumur * 1.25 + 273.15, ndigits)
+}
+
+fn reaumur_to_fahrenheit(reaumur: f32, ndigits: i64) -> f32 {
+    round_n(reaumur * 2.25 + 32.0, ndigits)
+}
+
+fn reaumur_to_celsius(reaumur: f32, ndigits: i64) -> f32 {
+    round_n(reaumur * 1.25, ndigits)
+}
+
+fn reaumur_to_rankine(reaumur: f32, ndigits: i64) -> f32 {
+    round_n(reaumur * 2.25 + 32.0 + 459.67, ndigits)
+}
+
+# ---- numeric gate (references from Python source doctests) ----
+
+fn test_celsius_to_fahrenheit() -> bool {
+    abs(celsius_to_fahrenheit(273.354, 3) - 524.037) < 0.001 &&
+    abs(celsius_to_fahrenheit(-40.0, 2) - (-40.0)) < 0.005 &&
+    abs(celsius_to_fahrenheit(0.0, 2) - 32.0) < 0.005
+}
+
+fn test_celsius_to_kelvin() -> bool {
+    abs(celsius_to_kelvin(273.354, 3) - 546.504) < 0.001 &&
+    abs(celsius_to_kelvin(0.0, 2) - 273.15) < 0.005
+}
+
+fn test_celsius_to_rankine() -> bool {
+    abs(celsius_to_rankine(273.354, 3) - 983.707) < 0.002 &&
+    abs(celsius_to_rankine(0.0, 2) - 491.67) < 0.005
+}
+
+fn test_fahrenheit_to_celsius() -> bool {
+    abs(fahrenheit_to_celsius(273.354, 3) - 134.086) < 0.001 &&
+    abs(fahrenheit_to_celsius(20.0, 2) - (-6.67)) < 0.005
+}
+
+fn test_fahrenheit_to_kelvin() -> bool {
+    abs(fahrenheit_to_kelvin(273.354, 3) - 407.236) < 0.001 &&
+    abs(fahrenheit_to_kelvin(0.0, 2) - 255.37) < 0.005
+}
+
+fn test_fahrenheit_to_rankine() -> bool {
+    abs(fahrenheit_to_rankine(273.354, 3) - 733.024) < 0.002 &&
+    abs(fahrenheit_to_rankine(0.0, 2) - 459.67) < 0.005
+}
+
+fn test_kelvin_to_celsius() -> bool {
+    abs(kelvin_to_celsius(273.354, 3) - 0.204) < 0.001 &&
+    abs(kelvin_to_celsius(300.0, 2) - 26.85) < 0.005
+}
+
+fn test_kelvin_to_fahrenheit() -> bool {
+    abs(kelvin_to_fahrenheit(273.354, 3) - 32.367) < 0.001 &&
+    abs(kelvin_to_fahrenheit(300.0, 2) - 80.33) < 0.005
+}
+
+fn test_kelvin_to_rankine() -> bool {
+    abs(kelvin_to_rankine(273.354, 3) - 492.037) < 0.001 &&
+    abs(kelvin_to_rankine(20.0, 2) - 36.0) < 0.005
+}
+
+fn test_rankine_to_celsius() -> bool {
+    abs(rankine_to_celsius(273.354, 3) - (-121.287)) < 0.001 &&
+    abs(rankine_to_celsius(300.0, 2) - (-106.48)) < 0.005
+}
+
+fn test_rankine_to_fahrenheit() -> bool {
+    abs(rankine_to_fahrenheit(273.15, 2) - (-186.52)) < 0.005 &&
+    abs(rankine_to_fahrenheit(300.0, 2) - (-159.67)) < 0.005
+}
+
+fn test_rankine_to_kelvin() -> bool {
+    abs(rankine_to_kelvin(20.0, 2) - 11.11) < 0.005 &&
+    abs(rankine_to_kelvin(0.0, 2) - 0.0) < 0.005
+}
+
+fn test_reaumur_to_kelvin() -> bool {
+    abs(reaumur_to_kelvin(20.0, 2) - 298.15) < 0.005 &&
+    abs(reaumur_to_kelvin(0.0, 2) - 273.15) < 0.005
+}
+
+fn test_reaumur_to_fahrenheit() -> bool {
+    abs(reaumur_to_fahrenheit(20.0, 2) - 77.0) < 0.005 &&
+    abs(reaumur_to_fahrenheit(40.0, 2) - 122.0) < 0.005
+}
+
+fn test_reaumur_to_celsius() -> bool {
+    abs(reaumur_to_celsius(20.0, 2) - 25.0) < 0.005 &&
+    abs(reaumur_to_celsius(40.0, 2) - 50.0) < 0.005
+}
+
+fn test_reaumur_to_rankine() -> bool {
+    abs(reaumur_to_rankine(20.0, 2) - 536.67) < 0.005 &&
+    abs(reaumur_to_rankine(0.0, 2) - 491.67) < 0.005
+}

@@ -1,0 +1,152 @@
+# Port of decrypt_caesar_with_chi_squared (TheAlgorithms/Python)
+# Default-args path only: lowercase a-z alphabet, English letter frequencies,
+# case-insensitive. Returns (most_likely_shift, chi_squared_value, decoded_text).
+
+# English letter frequency table, indexed 0..25 for 'a'..'z'.
+fn eng_freq(i: i64) -> f32 {
+    match i {
+        0 => 0.08497,
+        1 => 0.01492,
+        2 => 0.02202,
+        3 => 0.04253,
+        4 => 0.11162,
+        5 => 0.02228,
+        6 => 0.02015,
+        7 => 0.06094,
+        8 => 0.07546,
+        9 => 0.00153,
+        10 => 0.01292,
+        11 => 0.04025,
+        12 => 0.02406,
+        13 => 0.06749,
+        14 => 0.07507,
+        15 => 0.01929,
+        16 => 0.00095,
+        17 => 0.07587,
+        18 => 0.06327,
+        19 => 0.09356,
+        20 => 0.02758,
+        21 => 0.00978,
+        22 => 0.02560,
+        23 => 0.00150,
+        24 => 0.01994,
+        _ => 0.00077,
+    }
+}
+
+# Decrypt one lowercase ciphertext string with the given shift.
+# Non-letters pass through unchanged.
+fn decrypt_shift(ciphertext: str, shift: i64) -> str {
+    let n = len(ciphertext)
+    let !out = ""
+    let !i = 0
+    while i < n {
+        let c = ciphertext[i]
+        if c >= 97 {
+            if c <= 122 {
+                let idx = c - 97
+                # floored mod (demoniC % is truncated; idx-shift can be negative)
+                let nk = ((idx - shift) % 26 + 26) % 26
+                out = out + chr(97 + nk)
+            } else {
+                out = out + chr(c)
+            }
+        } else {
+            out = out + chr(c)
+        }
+        i = i + 1
+    }
+    out
+}
+
+# Count occurrences of codepoint `cp` in string `s`.
+fn count_cp(s: str, cp: i64) -> i64 {
+    let n = len(s)
+    let !cnt = 0
+    let !i = 0
+    while i < n {
+        if s[i] == cp {
+            cnt = cnt + 1
+        }
+        i = i + 1
+    }
+    cnt
+}
+
+# Chi-squared statistic for a decrypted lowercase string.
+# For each character position that is a letter a..z:
+#   occ = count of that letter in the string
+#   expected = freq * occ
+#   chi += (occ - expected)^2 / expected
+fn chi_squared(decrypted: str) -> f32 {
+    let n = len(decrypted)
+    let !total = 0.0
+    let !i = 0
+    while i < n {
+        let c = decrypted[i]
+        if c >= 97 {
+            if c <= 122 {
+                let occ = count_cp(decrypted, c)
+                let occf = to_float(occ)
+                let expected = eng_freq(c - 97) * occf
+                let d = occf - expected
+                total = total + (d * d) / expected
+            }
+        }
+        i = i + 1
+    }
+    total
+}
+
+# Main: brute-force all 26 shifts, return the one with the smallest chi-squared.
+fn decrypt_caesar_with_chi_squared(ciphertext: str) -> (i64, f32, str) {
+    let !best_shift = 0
+    let !best_chi = 0.0
+    let !best_text = ""
+    let !have = false
+    let !shift = 0
+    while shift < 26 {
+        let dec = decrypt_shift(ciphertext, shift)
+        let chi = chi_squared(dec)
+        if have {
+            if chi < best_chi {
+                best_chi = chi
+                best_shift = shift
+                best_text = dec
+            }
+        } else {
+            best_chi = chi
+            best_shift = shift
+            best_text = dec
+            have = true
+        }
+        shift = shift + 1
+    }
+    (best_shift, best_chi, best_text)
+}
+
+fn approx(a: f32, b: f32) -> bool {
+    let d = a - b
+    let ad = if d < 0.0 { 0.0 - d } else { d }
+    ad < 0.01
+}
+
+fn test_decrypt_shift() -> bool {
+    # 'crybd' decrypted with shift 10 -> 'short'
+    decrypt_shift("crybd cdbsxq", 10) == "short string"
+}
+
+fn test_count_cp() -> bool {
+    # 's' == 115, "short string" has 2 's'
+    count_cp("short string", 115) == 2
+}
+
+fn test_main_short() -> bool {
+    let (s, c, t) = decrypt_caesar_with_chi_squared("crybd cdbsxq")
+    s == 10 && t == "short string" && approx(c, 233.35343938980898)
+}
+
+fn test_main_long() -> bool {
+    let (s, c, t) = decrypt_caesar_with_chi_squared("dof pz aol jhlzhy jpwoly zv wvwbshy? pa pz avv lhzf av jyhjr!")
+    s == 7 && t == "why is the caesar cipher so popular? it is too easy to crack!" && approx(c, 3129.228005747531)
+}

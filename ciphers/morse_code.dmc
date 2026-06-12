@@ -1,0 +1,96 @@
+# Morse code encrypt/decrypt ported from TheAlgorithms/Python cipher_morse_code.py
+
+# map an UPPERCASE-or-symbol codepoint to its morse string
+fn char_to_morse(c: i64) -> str {
+    match c {
+        65 => ".-",     66 => "-...",   67 => "-.-.",   68 => "-..",
+        69 => ".",      70 => "..-.",   71 => "--.",    72 => "....",
+        73 => "..",     74 => ".---",   75 => "-.-",    76 => ".-..",
+        77 => "--",     78 => "-.",     79 => "---",    80 => ".--.",
+        81 => "--.-",   82 => ".-.",    83 => "...",    84 => "-",
+        85 => "..-",    86 => "...-",   87 => ".--",    88 => "-..-",
+        89 => "-.--",   90 => "--..",
+        49 => ".----",  50 => "..---",  51 => "...--",  52 => "....-",
+        53 => ".....",  54 => "-....",  55 => "--...",  56 => "---..",
+        57 => "----.",  48 => "-----",
+        38 => ".-...",  64 => ".--.-.", 58 => "---...", 44 => "--..--",
+        46 => ".-.-.-", 39 => ".----.", 34 => ".-..-.", 63 => "..--..",
+        47 => "-..-.",  61 => "-...-",  43 => ".-.-.",  45 => "-....-",
+        40 => "-.--.",  41 => "-.--.-", 33 => "-.-.--", 32 => "/",
+        _ => ""
+    }
+}
+
+# map a morse string back to its character (returns the char as a 1-char str)
+fn morse_to_char(m: str) -> str {
+    match m {
+        ".-" => "A",     "-..." => "B",   "-.-." => "C",   "-.." => "D",
+        "." => "E",      "..-." => "F",   "--." => "G",    "...." => "H",
+        ".." => "I",     ".---" => "J",   "-.-" => "K",    ".-.." => "L",
+        "--" => "M",     "-." => "N",     "---" => "O",    ".--." => "P",
+        "--.-" => "Q",   ".-." => "R",    "..." => "S",    "-" => "T",
+        "..-" => "U",    "...-" => "V",   ".--" => "W",    "-..-" => "X",
+        "-.--" => "Y",   "--.." => "Z",
+        ".----" => "1",  "..---" => "2",  "...--" => "3",  "....-" => "4",
+        "....." => "5",  "-...." => "6",  "--..." => "7",  "---.." => "8",
+        "----." => "9",  "-----" => "0",
+        ".-..." => "&",  ".--.-." => "@", "---..." => ":", "--..--" => ",",
+        ".-.-.-" => ".", ".----." => "'", ".-..-." => "\"","..--.." => "?",
+        "-..-." => "/",  "-...-" => "=",  ".-.-." => "+",  "-....-" => "-",
+        "-.--." => "(",  "-.--.-" => ")", "-.-.--" => "!", "/" => " ",
+        _ => ""
+    }
+}
+
+# uppercase a single codepoint (a-z -> A-Z), leave others
+fn upper_cp(c: i64) -> i64 {
+    if c >= 97 { if c <= 122 { c - 32 } else { c } } else { c }
+}
+
+fn encrypt(message: str) -> str {
+    let n = len(message)
+    let !out = ""
+    let !i = 0
+    while i < n {
+        let cp = upper_cp(message[i])
+        let code = char_to_morse(cp)
+        if i == 0 { out = code } else { out = out + " " + code }
+        i = i + 1
+    }
+    out
+}
+
+fn decrypt(message: str) -> str {
+    let toks = regex_split(" ", message)
+    let n = list_len(toks)
+    let !out = ""
+    let !i = 0
+    while i < n {
+        let code = list_get(toks, i)
+        out = out + morse_to_char(code)
+        i = i + 1
+    }
+    out
+}
+
+fn test_encrypt_sos() -> bool {
+    encrypt("Sos!") == "... --- ... -.-.--"
+}
+fn test_encrypt_case() -> bool {
+    encrypt("SOS!") == encrypt("sos!")
+}
+fn test_decrypt_sos() -> bool {
+    decrypt("... --- ... -.-.--") == "SOS!"
+}
+fn test_encrypt_sentence() -> bool {
+    encrypt("Morse code here!") == "-- --- .-. ... . / -.-. --- -.. . / .... . .-. . -.-.--"
+}
+fn test_roundtrip() -> bool {
+    decrypt(encrypt("Morse code here!")) == "MORSE CODE HERE!"
+}
+fn test_encrypt_symbols() -> bool {
+    encrypt("AB 9@") == ".- -... / ----. .--.-."
+}
+fn test_decrypt_symbols() -> bool {
+    decrypt(".- -... / ----. .--.-.") == "AB 9@"
+}

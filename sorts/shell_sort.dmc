@@ -1,0 +1,70 @@
+# Shell sort (Marcin Ciura's gap sequence)
+# Ported from TheAlgorithms/Python sort_shell_sort.py
+
+fn shell_sort(collection) {
+    let gaps = list(701, 301, 132, 57, 23, 10, 4, 1)
+    let n = list_len(collection)
+    let !coll = collection
+    let ng = list_len(gaps)
+    for gi in 0..ng {
+        let gap = list_get(gaps, gi)
+        for i in gap..n {
+            let insert_value = list_get(coll, i)
+            let !j = i
+            # while j >= gap and coll[j-gap] > insert_value
+            let !go = true
+            while go {
+                if j >= gap {
+                    if list_get(coll, j - gap) > insert_value {
+                        coll = list_set(coll, j, list_get(coll, j - gap))
+                        j = j - gap
+                    } else {
+                        go = false
+                    }
+                } else {
+                    go = false
+                }
+            }
+            if j != i {
+                coll = list_set(coll, j, insert_value)
+            }
+        }
+    }
+    coll
+}
+
+fn list_eq(a, b) -> bool {
+    let na = list_len(a)
+    let nb = list_len(b)
+    if na != nb { return false }
+    let !ok = true
+    for i in 0..na {
+        if list_get(a, i) != list_get(b, i) { ok = false }
+    }
+    ok
+}
+
+fn test_shell_sort_basic() -> bool {
+    let r = shell_sort(list(0, 5, 3, 2, 2))
+    list_eq(r, list(0, 2, 2, 3, 5))
+}
+
+fn test_shell_sort_empty() -> bool {
+    let r = shell_sort(list())
+    list_len(r) == 0
+}
+
+fn test_shell_sort_neg() -> bool {
+    let r = shell_sort(list(-2, -5, -45))
+    list_eq(r, list(-45, -5, -2))
+}
+
+fn test_shell_sort_rev() -> bool {
+    let r = shell_sort(list(9, 8, 7, 6, 5, 4, 3, 2, 1, 0))
+    list_eq(r, list(0, 1, 2, 3, 4, 5, 6, 7, 8, 9))
+}
+
+fn test_shell_sort_mixed() -> bool {
+    let r = shell_sort(list(5, 1, 4, 2, 8, 3, 7, 6, 0, 9, 11, 10, -3))
+    list_eq(r, list(-3, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11))
+}

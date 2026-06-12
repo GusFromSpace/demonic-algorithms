@@ -1,0 +1,77 @@
+# base16 encode/decode ported from TheAlgorithms/Python cipher_base16.py
+# Strings hold ASCII codepoints (== bytes for ASCII input).
+
+# encode a string into uppercase hex (two hex digits per byte/codepoint)
+fn base16_encode(s: str) -> str {
+    let !out = ""
+    let n = len(s)
+    for i in 0..n {
+        let b = s[i]                  # int codepoint 0..255
+        let hi = b / 16
+        let lo = b - hi * 16
+        out = out + chr(hex_digit(hi))
+        out = out + chr(hex_digit(lo))
+    }
+    out
+}
+
+# map 0..15 -> ASCII code of uppercase hex digit
+fn hex_digit(v: i64) -> i64 {
+    if v < 10 { 48 + v } else { 65 + (v - 10) }
+}
+
+# inverse: ASCII code of an uppercase hex digit -> 0..15, or -1 if invalid
+fn hex_val(c: i64) -> i64 {
+    if c >= 48 { if c <= 57 { return c - 48 } }
+    if c >= 65 { if c <= 70 { return c - 65 + 10 } }
+    -1
+}
+
+# decode an uppercase-hex string back into a string of bytes.
+# returns "" on invalid input (odd length or bad chars) as a sentinel.
+fn base16_decode(s: str) -> str {
+    let n = len(s)
+    if n - (n / 2) * 2 != 0 { return "" }   # odd length -> invalid
+    let !out = ""
+    let !i = 0
+    while i < n {
+        let hi = hex_val(s[i])
+        let lo = hex_val(s[i + 1])
+        if hi < 0 { return "" }
+        if lo < 0 { return "" }
+        out = out + chr(hi * 16 + lo)
+        i = i + 2
+    }
+    out
+}
+
+fn test_encode() -> bool {
+    base16_encode("Hello World!") == "48656C6C6F20576F726C6421"
+}
+fn test_encode2() -> bool {
+    base16_encode("HELLO WORLD!") == "48454C4C4F20574F524C4421"
+}
+fn test_encode_empty() -> bool {
+    base16_encode("") == ""
+}
+fn test_decode() -> bool {
+    base16_decode("48656C6C6F20576F726C6421") == "Hello World!"
+}
+fn test_decode2() -> bool {
+    base16_decode("48454C4C4F20574F524C4421") == "HELLO WORLD!"
+}
+fn test_decode_empty() -> bool {
+    base16_decode("") == ""
+}
+fn test_decode_odd() -> bool {
+    base16_decode("486") == ""
+}
+fn test_decode_lower() -> bool {
+    base16_decode("48656c6c6f20576f726c6421") == ""
+}
+fn test_decode_invalid() -> bool {
+    base16_decode("This is not base64 encoded data.") == ""
+}
+fn test_roundtrip() -> bool {
+    base16_decode(base16_encode("hello")) == "hello"
+}

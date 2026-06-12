@@ -1,0 +1,89 @@
+# Vigenere cipher ported from TheAlgorithms/Python cipher_vigenere_cipher.py
+# 'A'=65 'Z'=90 'a'=97 'z'=122. demoniC s[i] is an int codepoint.
+
+# uppercase a single codepoint if it is a lowercase ASCII letter
+fn to_upper_cp(c: i64) -> i64 {
+    if c >= 97 { if c <= 122 { c - 32 } else { c } } else { c }
+}
+
+# index of codepoint c within "ABCDEFGHIJKLMNOPQRSTUVWXYZ", or -1
+fn letter_index(c: i64) -> i64 {
+    let u = to_upper_cp(c)
+    if u >= 65 { if u <= 90 { u - 65 } else { 0 - 1 } } else { 0 - 1 }
+}
+
+# floored modulo 26 (demoniC % is truncated; Python is floored)
+fn mod26(n: i64) -> i64 {
+    let r = n % 26
+    if r < 0 { r + 26 } else { r }
+}
+
+# core: mode 1 = encrypt, mode 0 = decrypt
+fn translate(key: str, message: str, mode: i64) -> str {
+    let !out = ""
+    let !key_index = 0
+    let m = len(message)
+    let klen = len(key)
+    let !i = 0
+    while i < m {
+        let sym = message[i]
+        let num0 = letter_index(sym)
+        if num0 == 0 - 1 {
+            out = out + chr(sym)
+        } else {
+            let kc = key[key_index]
+            let kpos = letter_index(kc)
+            let !num = num0
+            if mode == 1 {
+                num = num + kpos
+            } else {
+                num = num - kpos
+            }
+            num = mod26(num)
+            # preserve case of the original symbol
+            if sym >= 97 {
+                if sym <= 122 {
+                    out = out + chr(num + 97)
+                } else {
+                    out = out + chr(num + 65)
+                }
+            } else {
+                out = out + chr(num + 65)
+            }
+            key_index = key_index + 1
+            if key_index == klen {
+                key_index = 0
+            }
+        }
+        i = i + 1
+    }
+    out
+}
+
+fn encrypt_message(key: str, message: str) -> str {
+    translate(key, message, 1)
+}
+
+fn decrypt_message(key: str, message: str) -> str {
+    translate(key, message, 0)
+}
+
+fn test_encrypt_basic() -> bool {
+    encrypt_message("KEY", "HELLO") == "RIJVS"
+}
+
+fn test_decrypt_basic() -> bool {
+    decrypt_message("KEY", "RIJVS") == "HELLO"
+}
+
+fn test_encrypt_doctest() -> bool {
+    encrypt_message("HDarji", "This is Harshil Darji from Dharmaj.") == "Akij ra Odrjqqs Gaisq muod Mphumrs."
+}
+
+fn test_decrypt_doctest() -> bool {
+    decrypt_message("HDarji", "Akij ra Odrjqqs Gaisq muod Mphumrs.") == "This is Harshil Darji from Dharmaj."
+}
+
+fn test_roundtrip() -> bool {
+    decrypt_message("LEMON", encrypt_message("LEMON", "Attack at Dawn!")) == "Attack at Dawn!"
+}

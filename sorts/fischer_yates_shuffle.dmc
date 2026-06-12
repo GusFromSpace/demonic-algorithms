@@ -1,0 +1,67 @@
+# Fisher-Yates shuffle ported from TheAlgorithms/Python
+# The shuffle uses random.randint, which is not reproducible across languages.
+# But the algorithm is a sequence of in-place swaps, so its INVARIANT is exact:
+# the output is always a PERMUTATION of the input (same multiset / same sum).
+# We use a deterministic LCG so the test is reproducible, and verify the invariant.
+
+# deterministic pseudo-random state advance (Numerical Recipes LCG, mod 2^32)
+fn lcg_next(s: i64) -> i64 {
+    let m = 4294967296            # 2**32
+    (s * 1664525 + 1013904223) % m
+}
+
+# Fisher-Yates on an integer tensor of length n, seeded deterministically.
+# Mirrors the Python: for _ in range(n): a=rand(0,n-1); b=rand(0,n-1); swap(a,b)
+fn fisher_yates[N](data: Tensor[i64, [N]], seed: i64) -> Tensor[i64, [N]] {
+    let !out = forge.zeros[i64, [N]]
+    for i in 0..N { out[i] = data[i] }
+    let n = N as i64
+    let !state = seed
+    for k in 0..N {
+        state = lcg_next(state)
+        let a = state % n
+        state = lcg_next(state)
+        let b = state % n
+        let tmp = out[a]
+        out[a] = out[b]
+        out[b] = tmp
+    }
+    out
+}
+
+fn test_fy_sum_preserved() -> bool {
+    let !data = forge.zeros[i64, [8]]
+    for i in 0..8 { data[i] = i as i64 }
+    let res = fisher_yates[8](data, 12345)
+    let !s = 0
+    for i in 0..8 { s = s + res[i] }
+    s == 28
+}
+
+fn test_fy_is_permutation() -> bool {
+    let !data = forge.zeros[i64, [8]]
+    for i in 0..8 { data[i] = i as i64 }
+    let res = fisher_yates[8](data, 12345)
+    let !ok = true
+    for v in 0..8 {
+        let !cnt = 0
+        for i in 0..8 { if res[i] == v as i64 { cnt = cnt + 1 } }
+        if cnt != 1 { ok = false }
+    }
+    ok
+}
+
+fn test_fy_different_seed_still_permutation() -> bool {
+    let !data = forge.zeros[i64, [8]]
+    for i in 0..8 { data[i] = (i as i64) * 10 }
+    let res = fisher_yates[8](data, 99)
+    let !s = 0
+    for i in 0..8 { s = s + res[i] }
+    s == 280
+}
+
+fn test_lcg_deterministic() -> bool {
+    let a = lcg_next(1)
+    let b = lcg_next(1)
+    a == b
+}

@@ -1,0 +1,151 @@
+# Base85 (Ascii85) encode/decode
+# Ported from TheAlgorithms/Python cipher_base85.py
+# Input/output bytes represented as strings of codepoints 0..255 (ASCII-faithful).
+
+# _base10_to_85(d): produce base-85 digits LEAST-significant-first,
+# each digit as chr(digit+33). Empty for d==0. (matches Python helper)
+fn base10_to_85_lsf(d: i64) -> str {
+    let !out = ""
+    let !x = d
+    while x > 0 {
+        let dig = x % 85
+        out = out + chr(dig + 33)
+        x = x / 85
+    }
+    out
+}
+
+# Reverse a string of single-byte codepoints.
+fn rev_str(s: str) -> str {
+    let n = len(s)
+    let !out = ""
+    let !i = n - 1
+    while i >= 0 {
+        out = out + chr(s[i])
+        i = i - 1
+    }
+    out
+}
+
+# Python does _base10_to_85(d)[::-1] == base-85 MSD-first, no leading zeros, empty if 0
+fn base10_to_85(d: i64) -> str {
+    rev_str(base10_to_85_lsf(d))
+}
+
+# _base85_to_10(digits): sum(char * 85**i for i,char in enumerate(reversed(digits)))
+# digits is 5 ints (already ord-33). Horner over the 5 digits MSD-first.
+fn base85_to_10(d0: i64, d1: i64, d2: i64, d3: i64, d4: i64) -> i64 {
+    let !v = 0
+    v = v * 85 + d0
+    v = v * 85 + d1
+    v = v * 85 + d2
+    v = v * 85 + d3
+    v = v * 85 + d4
+    v
+}
+
+fn ascii85_encode(data: str) -> str {
+    let n = len(data)
+    if n == 0 { return "" }
+    let chunks = (n / 4) + 1
+    let !result = ""
+    let !c = 0
+    while c < chunks {
+        let base = c * 4
+        # gather 4 bytes, missing -> 0 (padding)
+        let !b0 = 0
+        let !b1 = 0
+        let !b2 = 0
+        let !b3 = 0
+        if base + 0 < n { b0 = data[base + 0] }
+        if base + 1 < n { b1 = data[base + 1] }
+        if base + 2 < n { b2 = data[base + 2] }
+        if base + 3 < n { b3 = data[base + 3] }
+        let val = b0 * 16777216 + b1 * 65536 + b2 * 256 + b3
+        result = result + base10_to_85(val)
+        c = c + 1
+    }
+    let null_values = 4 * chunks - n
+    # if null_values % 4 != 0: result[:-null_values]
+    if null_values % 4 != 0 {
+        let rn = len(result)
+        let keep = rn - null_values
+        let !out = ""
+        let !i = 0
+        while i < keep {
+            out = out + chr(result[i])
+            i = i + 1
+        }
+        return out
+    }
+    result
+}
+
+fn ascii85_decode(data: str) -> str {
+    let n = len(data)
+    let null_values = 5 * ((n / 5) + 1) - n
+    # binary_data = data + 'u'*null_values  ('u' == codepoint 117 == digit 117-33=84)
+    let total = n + null_values
+    let chunks = total / 5
+    # collect decoded bytes (0..255) in a list — a string can't hold raw
+    # high bytes (chr(>127) becomes multi-byte UTF-8, breaking len/index).
+    let !bytes = list()
+    let !c = 0
+    while c < chunks {
+        let base = c * 5
+        let !d0 = 84
+        let !d1 = 84
+        let !d2 = 84
+        let !d3 = 84
+        let !d4 = 84
+        if base + 0 < n { d0 = data[base + 0] - 33 }
+        if base + 1 < n { d1 = data[base + 1] - 33 }
+        if base + 2 < n { d2 = data[base + 2] - 33 }
+        if base + 3 < n { d3 = data[base + 3] - 33 }
+        if base + 4 < n { d4 = data[base + 4] - 33 }
+        let val = base85_to_10(d0, d1, d2, d3, d4)
+        # val is a 32-bit number -> 4 bytes, MSB first
+        bytes = list_push(bytes, (val / 16777216) % 256)
+        bytes = list_push(bytes, (val / 65536) % 256)
+        bytes = list_push(bytes, (val / 256) % 256)
+        bytes = list_push(bytes, val % 256)
+        c = c + 1
+    }
+    # offset = int(null_values % 5 == 0); result[:offset - null_values]
+    let offset = if null_values % 5 == 0 { 1 } else { 0 }
+    let cut = offset - null_values    # <= 0; Python result[:cut] keeps len+cut bytes
+    let total_bytes = 4 * chunks
+    let keep = total_bytes + cut
+    let !out = ""
+    let !i = 0
+    while i < keep {
+        out = out + chr(list_get(bytes, i))
+        i = i + 1
+    }
+    out
+}
+
+# ---- tests ----
+fn test_base10_to_85_zero() -> bool { len(base10_to_85(0)) == 0 }
+fn test_base10_to_85_85() -> bool {
+    # Python: _base10_to_85(85)[::-1] -> '"!'  codepoints [34, 33]
+    let s = base10_to_85(85)
+    len(s) == 2 && s[0] == 34 && s[1] == 33
+}
+
+fn test_encode_empty() -> bool { ascii85_encode("") == "" }
+fn test_encode_12345() -> bool { ascii85_encode("12345") == "0etOA2#" }
+fn test_encode_base85() -> bool { ascii85_encode("base 85") == "@UX=h+?24" }
+fn test_encode_1() -> bool { ascii85_encode("1") == "0`" }
+fn test_encode_123() -> bool { ascii85_encode("123") == "0etN" }
+fn test_encode_1234() -> bool { ascii85_encode("1234") == "0etOA" }
+
+fn test_decode_empty() -> bool { ascii85_decode("") == "" }
+fn test_decode_12345() -> bool { ascii85_decode("0etOA2#") == "12345" }
+fn test_decode_base85() -> bool { ascii85_decode("@UX=h+?24") == "base 85" }
+fn test_decode_1() -> bool { ascii85_decode("0`") == "1" }
+
+fn test_roundtrip() -> bool {
+    let s = "hello world!"
+    ascii85_decode(ascii85_encode(s)) == s
+}

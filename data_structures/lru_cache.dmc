@@ -1,0 +1,147 @@
+# Array-backed LRU cache (algorithm port of TheAlgorithms/Python other/lru_cache.py).
+# demoniC has no classes/dicts/closures/Option, so the linked-list + dict design is
+# reimplemented as fixed-capacity parallel arrays with a recency tick (least tick = LRU).
+# Tensor writes do not propagate out of a callee, so the whole cache simulation is
+# inline in one function. Returns a packed result we can assert against Python.
+#
+# Cache slots: keys[i], vals[i], used[i] (0 = empty), tick[i] (recency, larger = newer).
+# Sentinel: get returns -1 on a miss (all real values here are >= 1, matching the source).
+
+# Run the exact doctest sequence on a capacity-2 cache.
+# Packs outcomes into a single tensor:
+#   r[0]=get(1) after put1,put2      (expect 1)
+#   r[1]=get(2) after put3 evicts    (expect -1  == Python None)
+#   r[2]=get(1) after put4 evicts    (expect -1)
+#   r[3]=get(3)                      (expect 3)
+#   r[4]=get(4)                      (expect 4)
+#   r[5]=hits                        (expect 3)
+#   r[6]=miss                        (expect 2)
+fn lru_run() -> Tensor[i64, [7]] {
+    let cap = 2
+    let !keys = forge.zeros[i64, [2]]
+    let !vals = forge.zeros[i64, [2]]
+    let !used = forge.zeros[i64, [2]]   # 0 empty, 1 occupied
+    let !tick = forge.zeros[i64, [2]]
+    let !clock = 0
+    let !hits = 0
+    let !miss = 0
+    let !out = forge.zeros[i64, [7]]
+    let !oi = 0
+
+    # put(1,1)
+    clock = clock + 1
+    let !slot = -1
+    for i in 0..cap { if used[i] == 1 { if keys[i] == 1 { slot = i } } }
+    if slot >= 0 {
+        vals[slot] = 1
+        tick[slot] = clock
+    } else {
+        let !e = -1
+        for i in 0..cap { if used[i] == 0 { if e < 0 { e = i } } }
+        if e < 0 {
+            let !lru = 0
+            let !best = tick[0]
+            for i in 0..cap { if tick[i] < best { best = tick[i]  lru = i } }
+            e = lru
+        }
+        keys[e] = 1  vals[e] = 1  used[e] = 1  tick[e] = clock
+    }
+
+    # put(2,2)
+    clock = clock + 1
+    slot = -1
+    for i in 0..cap { if used[i] == 1 { if keys[i] == 2 { slot = i } } }
+    if slot >= 0 {
+        vals[slot] = 2  tick[slot] = clock
+    } else {
+        let !e = -1
+        for i in 0..cap { if used[i] == 0 { if e < 0 { e = i } } }
+        if e < 0 {
+            let !lru = 0
+            let !best = tick[0]
+            for i in 0..cap { if tick[i] < best { best = tick[i]  lru = i } }
+            e = lru
+        }
+        keys[e] = 2  vals[e] = 2  used[e] = 1  tick[e] = clock
+    }
+
+    # get(1) -> expect 1
+    clock = clock + 1
+    let !g = -1
+    for i in 0..cap { if used[i] == 1 { if keys[i] == 1 { g = vals[i]  tick[i] = clock } } }
+    if g >= 0 { hits = hits + 1 } else { miss = miss + 1 }
+    out[oi] = g  oi = oi + 1
+
+    # put(3,3) -> evicts LRU (key 2)
+    clock = clock + 1
+    slot = -1
+    for i in 0..cap { if used[i] == 1 { if keys[i] == 3 { slot = i } } }
+    if slot >= 0 {
+        vals[slot] = 3  tick[slot] = clock
+    } else {
+        let !e = -1
+        for i in 0..cap { if used[i] == 0 { if e < 0 { e = i } } }
+        if e < 0 {
+            let !lru = 0
+            let !best = tick[0]
+            for i in 0..cap { if tick[i] < best { best = tick[i]  lru = i } }
+            e = lru
+        }
+        keys[e] = 3  vals[e] = 3  used[e] = 1  tick[e] = clock
+    }
+
+    # get(2) -> expect miss (-1)
+    clock = clock + 1
+    g = -1
+    for i in 0..cap { if used[i] == 1 { if keys[i] == 2 { g = vals[i]  tick[i] = clock } } }
+    if g >= 0 { hits = hits + 1 } else { miss = miss + 1 }
+    out[oi] = g  oi = oi + 1
+
+    # put(4,4) -> evicts LRU (key 1)
+    clock = clock + 1
+    slot = -1
+    for i in 0..cap { if used[i] == 1 { if keys[i] == 4 { slot = i } } }
+    if slot >= 0 {
+        vals[slot] = 4  tick[slot] = clock
+    } else {
+        let !e = -1
+        for i in 0..cap { if used[i] == 0 { if e < 0 { e = i } } }
+        if e < 0 {
+            let !lru = 0
+            let !best = tick[0]
+            for i in 0..cap { if tick[i] < best { best = tick[i]  lru = i } }
+            e = lru
+        }
+        keys[e] = 4  vals[e] = 4  used[e] = 1  tick[e] = clock
+    }
+
+    # get(1) -> expect miss (-1)
+    clock = clock + 1
+    g = -1
+    for i in 0..cap { if used[i] == 1 { if keys[i] == 1 { g = vals[i]  tick[i] = clock } } }
+    if g >= 0 { hits = hits + 1 } else { miss = miss + 1 }
+    out[oi] = g  oi = oi + 1
+
+    # get(3) -> expect 3
+    clock = clock + 1
+    g = -1
+    for i in 0..cap { if used[i] == 1 { if keys[i] == 3 { g = vals[i]  tick[i] = clock } } }
+    if g >= 0 { hits = hits + 1 } else { miss = miss + 1 }
+    out[oi] = g  oi = oi + 1
+
+    # get(4) -> expect 4
+    clock = clock + 1
+    g = -1
+    for i in 0..cap { if used[i] == 1 { if keys[i] == 4 { g = vals[i]  tick[i] = clock } } }
+    if g >= 0 { hits = hits + 1 } else { miss = miss + 1 }
+    out[oi] = g  oi = oi + 1
+
+    out[5] = hits
+    out[6] = miss
+    out
+}
+
+fn test_lru_run() -> bool {
+    let r = lru_run()
+    r[0] == 1 && r[1] == -1 && r[2] == -1 && r[3] == 3 && r[4] == 4 && r[5] == 3 && r[6] == 2
+}

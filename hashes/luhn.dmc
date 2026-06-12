@@ -1,0 +1,39 @@
+# Luhn algorithm validation, ported from TheAlgorithms/Python hashes/luhn.py
+
+fn is_luhn(s: str) -> bool {
+    let n = len(s)
+    # last char is the initial check_digit
+    let !check_digit = s[n - 1] - 48
+    # iterate over the remaining digits (indices 0 .. n-2), reversed.
+    # reversed position j = 0 for the 2nd-last char (index n-2), increasing toward the front.
+    let !j = 0
+    let !idx = n - 2
+    while idx >= 0 {
+        let digit = s[idx] - 48
+        if j & 1 == 0 {
+            let !doubled = digit * 2
+            if doubled > 9 {
+                doubled = doubled - 9
+            }
+            check_digit = check_digit + doubled
+        } else {
+            check_digit = check_digit + digit
+        }
+        j = j + 1
+        idx = idx - 1
+    }
+    check_digit % 10 == 0
+}
+
+fn test_is_luhn() -> bool {
+    let a = is_luhn("79927398710") == false
+    let b = is_luhn("79927398711") == false
+    let c = is_luhn("79927398712") == false
+    let d = is_luhn("79927398713") == true
+    let e = is_luhn("79927398714") == false
+    let f = is_luhn("79927398719") == false
+    let g = is_luhn("0") == true
+    let h = is_luhn("18") == true
+    let i = is_luhn("4111111111111111") == true
+    a && b && c && d && e && f && g && h && i
+}

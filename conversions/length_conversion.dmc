@@ -1,0 +1,119 @@
+# Length unit conversion (ported from TheAlgorithms/Python conv_length_conversion.py)
+# Normalizes a unit name (lowercase + strip trailing 's' + full-name->abbreviation),
+# then multiplies value by from_factor(from_unit) * to_factor(to_unit).
+
+# lowercase + drop a single trailing 's'
+fn norm_unit(s: str) -> str {
+    let n = len(s)
+    let !out = ""
+    let !i = 0
+    while i < n {
+        let c = s[i]
+        let lc = if c >= 65 { if c <= 90 { c + 32 } else { c } } else { c }
+        let is_last = i == n - 1
+        let drop = if is_last { lc == 115 } else { false }
+        if drop { } else { out = out + chr(lc) }
+        i = i + 1
+    }
+    out
+}
+
+# map a normalized unit name to a canonical abbreviation index:
+# 0=mm 1=cm 2=m 3=km 4=in 5=ft 6=yd 7=mi ; -1 = unknown
+fn unit_index(u: str) -> i64 {
+    let n = norm_unit(u)
+    if n == "millimeter" { 0 }
+    else { if n == "mm" { 0 }
+    else { if n == "centimeter" { 1 }
+    else { if n == "cm" { 1 }
+    else { if n == "meter" { 2 }
+    else { if n == "m" { 2 }
+    else { if n == "kilometer" { 3 }
+    else { if n == "km" { 3 }
+    else { if n == "inch" { 4 }
+    else { if n == "inche" { 4 }
+    else { if n == "in" { 4 }
+    else { if n == "feet" { 5 }
+    else { if n == "foot" { 5 }
+    else { if n == "ft" { 5 }
+    else { if n == "yard" { 6 }
+    else { if n == "yd" { 6 }
+    else { if n == "mile" { 7 }
+    else { if n == "mi" { 7 }
+    else { -1 } } } } } } } } } } } } } } } } } }
+}
+
+fn from_factor(idx: i64) -> f32 {
+    if idx == 0 { 0.001 }
+    else { if idx == 1 { 0.01 }
+    else { if idx == 2 { 1.0 }
+    else { if idx == 3 { 1000.0 }
+    else { if idx == 4 { 0.0254 }
+    else { if idx == 5 { 0.3048 }
+    else { if idx == 6 { 0.9144 }
+    else { if idx == 7 { 1609.34 }
+    else { 0.0 } } } } } } } }
+}
+
+fn to_factor(idx: i64) -> f32 {
+    if idx == 0 { 1000.0 }
+    else { if idx == 1 { 100.0 }
+    else { if idx == 2 { 1.0 }
+    else { if idx == 3 { 0.001 }
+    else { if idx == 4 { 39.3701 }
+    else { if idx == 5 { 3.28084 }
+    else { if idx == 6 { 1.09361 }
+    else { if idx == 7 { 0.000621371 }
+    else { 0.0 } } } } } } } }
+}
+
+# returns converted value; returns 0.0 on unknown unit (sentinel, no exceptions in demoniC)
+fn length_conversion(value: f32, from_type: str, to_type: str) -> f32 {
+    let fi = unit_index(from_type)
+    let ti = unit_index(to_type)
+    if fi < 0 { 0.0 }
+    else { if ti < 0 { 0.0 }
+    else { value * from_factor(fi) * to_factor(ti) } }
+}
+
+fn approx(a: f32, b: f32, tol: f32) -> bool {
+    let d = a - b
+    let ad = if d < 0.0 { 0.0 - d } else { d }
+    ad <= tol
+}
+
+fn test_length_conversion() -> bool {
+    let !ok = true
+    if !approx(length_conversion(4.0, "METER", "FEET"), 13.12336, 0.0001) { ok = false }
+    if !approx(length_conversion(4.0, "M", "FT"), 13.12336, 0.0001) { ok = false }
+    if !approx(length_conversion(1.0, "meter", "kilometer"), 0.001, 0.0000001) { ok = false }
+    if !approx(length_conversion(1.0, "kilometer", "inch"), 39370.1, 0.1) { ok = false }
+    if !approx(length_conversion(3.0, "kilometer", "mile"), 1.864113, 0.0001) { ok = false }
+    if !approx(length_conversion(2.0, "feet", "meter"), 0.6096, 0.0001) { ok = false }
+    if !approx(length_conversion(4.0, "feet", "yard"), 1.333329312, 0.0001) { ok = false }
+    if !approx(length_conversion(1.0, "inch", "meter"), 0.0254, 0.0000001) { ok = false }
+    if !approx(length_conversion(2.0, "inch", "mile"), 0.0000315656468, 0.0000000001) { ok = false }
+    if !approx(length_conversion(2.0, "centimeter", "millimeter"), 20.0, 0.0001) { ok = false }
+    if !approx(length_conversion(2.0, "centimeter", "yard"), 0.0218722, 0.0000001) { ok = false }
+    if !approx(length_conversion(4.0, "yard", "meter"), 3.6576, 0.0001) { ok = false }
+    if !approx(length_conversion(4.0, "yard", "kilometer"), 0.0036576, 0.0000001) { ok = false }
+    if !approx(length_conversion(3.0, "foot", "meter"), 0.9144, 0.0001) { ok = false }
+    if !approx(length_conversion(3.0, "foot", "inch"), 36.00001944, 0.001) { ok = false }
+    if !approx(length_conversion(4.0, "mile", "kilometer"), 6.43736, 0.0001) { ok = false }
+    if !approx(length_conversion(2.0, "miles", "InChEs"), 126719.753468, 0.5) { ok = false }
+    if !approx(length_conversion(3.0, "millimeter", "centimeter"), 0.3, 0.0001) { ok = false }
+    if !approx(length_conversion(3.0, "mm", "in"), 0.1181103, 0.0000001) { ok = false }
+    ok
+}
+
+fn test_unknown_unit() -> bool {
+    length_conversion(4.0, "wrongUnit", "inch") == 0.0
+}
+
+fn test_norm_unit() -> bool {
+    if norm_unit("METER") == "meter" {
+    if norm_unit("FEET") == "feet" {
+    if norm_unit("miles") == "mile" {
+        norm_unit("InChEs") == "inche"
+    } else { false } } else { false } } else { false }
+}

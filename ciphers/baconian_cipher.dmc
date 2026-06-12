@@ -1,0 +1,120 @@
+# Baconian (Bacon's) cipher — ported from TheAlgorithms/Python
+# encode_dict maps a..z to a 5-char A/B code (space -> space).
+# The codes are NOT sequential by letter index, so we carry the flat
+# 26*5 = 130-char table and index it at letter_index*5.
+
+fn bacon_table() -> str {
+    "AAAAAAAAABAAABAAAABBAABAAAABABAABBAAABBBABAAABBBAAABAABABABAABABBABBAAABBABABBBAABBBBBAAAABAAABBAABABAABBBBBABBABAABABABBABBABABBB"
+}
+
+# Encode: lowercase letters and uppercase letters map to their code;
+# space maps to space. (Invalid chars are skipped — the Python raised,
+# demoniC has no exceptions; valid-input path is ported faithfully.)
+fn encode(word: str) -> str {
+    let table = bacon_table()
+    let n = len(word)
+    let !out = ""
+    for i in 0..n {
+        let !ch = word[i]            # codepoint
+        if ch >= 65 {               # 'A' = 65
+            if ch <= 90 {           # uppercase -> lowercase
+                ch = ch + 32
+            }
+        }
+        if ch == 32 {               # space
+            out = out + " "
+        } else {
+            if ch >= 97 {           # lowercase a..z
+                if ch <= 122 {
+                    let base = (ch - 97) * 5
+                    for k in 0..5 {
+                        out = out + chr(table[base + k])
+                    }
+                }
+            }
+        }
+    }
+    out
+}
+
+# Decode: walk the coded string. Accumulate A/B chars into a 5-bit value
+# (A=0, B=1); every 5 chars, reverse-map to a letter. A space emits a space.
+# Trailing space is trimmed (Python's .strip()).
+fn rev_letter(v: i64) -> i64 {
+    # 5-bit value -> codepoint of letter, or -1 if unused
+    match v {
+        0 => 97, 1 => 98, 2 => 99, 3 => 100, 4 => 101,
+        5 => 102, 6 => 103, 7 => 104, 8 => 105, 9 => 107,
+        10 => 108, 11 => 109, 12 => 110, 13 => 111, 14 => 112,
+        15 => 113, 16 => 114, 17 => 115, 18 => 116, 19 => 117,
+        20 => 119, 21 => 120, 22 => 121, 23 => 122, 28 => 106,
+        29 => 118, _ => -1
+    }
+}
+
+fn decode(coded: str) -> str {
+    let n = len(coded)
+    let !out = ""
+    let !acc = 0          # 5-bit accumulator
+    let !cnt = 0          # chars seen in current group
+    for i in 0..n {
+        let ch = coded[i]
+        if ch == 32 {          # space
+            out = out + " "
+        } else {
+            let !bit = 0
+            if ch == 66 { bit = 1 }    # 'B' = 66, else 'A'
+            acc = acc * 2 + bit
+            cnt = cnt + 1
+            if cnt == 5 {
+                out = out + chr(rev_letter(acc))
+                acc = 0
+                cnt = 0
+            }
+        }
+    }
+    # strip a single trailing space (Python .strip() only matters here at the end)
+    let m = len(out)
+    if m > 0 {
+        if out[m - 1] == 32 {
+            let !trimmed = ""
+            for j in 0..(m - 1) { trimmed = trimmed + chr(out[j]) }
+            out = trimmed
+        }
+    }
+    out
+}
+
+# ---- numeric gate ----
+
+fn test_encode_hello() -> bool {
+    encode("hello") == "AABBBAABAAABABAABABAABBAB"
+}
+
+fn test_encode_hello_world() -> bool {
+    encode("hello world") == "AABBBAABAAABABAABABAABBAB BABAAABBABBAAAAABABAAAABB"
+}
+
+fn test_encode_abc() -> bool {
+    encode("abc") == "AAAAAAAAABAAABA"
+}
+
+fn test_encode_z() -> bool {
+    encode("z") == "BABBB"
+}
+
+fn test_encode_uppercase() -> bool {
+    encode("HELLO") == "AABBBAABAAABABAABABAABBAB"
+}
+
+fn test_decode_hello() -> bool {
+    decode("AABBBAABAAABABAABABAABBAB") == "hello"
+}
+
+fn test_decode_hello_world() -> bool {
+    decode("AABBBAABAAABABAABABAABBAB BABAAABBABBAAAAABABAAAABB") == "hello world"
+}
+
+fn test_roundtrip() -> bool {
+    decode(encode("the quick brown fox")) == "the quick brown fox"
+}

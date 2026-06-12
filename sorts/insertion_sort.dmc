@@ -1,0 +1,45 @@
+# insertion sort over a fixed-size f32 tensor, ascending
+# ported from TheAlgorithms/Python sorts/insertion_sort.py
+fn insertion_sort[N](collection: Tensor[f32, [N]]) -> Tensor[f32, [N]] {
+    let !c = collection
+    for insert_index in 1..N {
+        let insert_value = c[insert_index]
+        let !j = insert_index
+        let !go = true
+        while go {
+            if j > 0 {
+                if insert_value < c[j - 1] {
+                    c[j] = c[j - 1]
+                    j = j - 1
+                } else {
+                    go = false
+                }
+            } else {
+                go = false
+            }
+        }
+        c[j] = insert_value
+    }
+    c
+}
+
+fn test_insertion_sort_basic() -> bool {
+    let !a = forge.zeros[f32, [5]]
+    a[0] = 0.0  a[1] = 5.0  a[2] = 3.0  a[3] = 2.0  a[4] = 2.0
+    let s = insertion_sort(a)
+    s[0] == 0.0 && s[1] == 2.0 && s[2] == 2.0 && s[3] == 3.0 && s[4] == 5.0
+}
+
+fn test_insertion_sort_neg() -> bool {
+    let !a = forge.zeros[f32, [3]]
+    a[0] = 0.0 - 2.0  a[1] = 0.0 - 5.0  a[2] = 0.0 - 45.0
+    let s = insertion_sort(a)
+    s[0] == 0.0 - 45.0 && s[1] == 0.0 - 5.0 && s[2] == 0.0 - 2.0
+}
+
+fn test_insertion_sort_one() -> bool {
+    let !a = forge.zeros[f32, [1]]
+    a[0] = 7.0
+    let s = insertion_sort(a)
+    s[0] == 7.0
+}

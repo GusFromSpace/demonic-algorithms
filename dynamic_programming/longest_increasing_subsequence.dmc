@@ -1,0 +1,72 @@
+# Longest increasing subsequence (returns the actual subsequence).
+# Faithful port of TheAlgorithms/Python dp_longest_increasing_subsequence.
+# Recursive: pivot = first element; uses >= so equal elements are kept.
+fn longest_subsequence(array: list) -> list {
+    let n = list_len(array)
+    if n <= 1 {
+        return array
+    }
+    let pivot = list_get(array, 0)
+
+    # Find first index i>=1 with array[i] < pivot; recurse on array[i:].
+    let !longest_subseq = list()
+    let !is_found = false
+    let !i = 1
+    while !is_found && i < n {
+        if list_get(array, i) < pivot {
+            is_found = true
+            let tail = list_slice(array, i, n)
+            let cand = longest_subsequence(tail)
+            if list_len(cand) > list_len(longest_subseq) {
+                longest_subseq = cand
+            }
+        } else {
+            i = i + 1
+        }
+    }
+
+    # temp = [pivot, *longest_subsequence([el for el in array[1:] if el >= pivot])]
+    let !kept = list()
+    let !j = 1
+    while j < n {
+        let el = list_get(array, j)
+        if el >= pivot {
+            kept = list_push(kept, el)
+        }
+        j = j + 1
+    }
+    let temp_array = list_concat(list(pivot), longest_subsequence(kept))
+
+    if list_len(temp_array) > list_len(longest_subseq) {
+        temp_array
+    } else {
+        longest_subseq
+    }
+}
+
+# test-support: element-wise list equality
+fn eq(a: list, b: list) -> bool {
+    if list_len(a) != list_len(b) { return false }
+    let !k = 0
+    let !ok = true
+    while k < list_len(a) {
+        if list_get(a, k) != list_get(b, k) { ok = false }
+        k = k + 1
+    }
+    ok
+}
+
+fn test_longest_subsequence() -> bool {
+    let r1 = longest_subsequence(list(10,22,9,33,21,50,41,60,80))
+    let r2 = longest_subsequence(list(4,8,7,5,1,12,2,3,9))
+    let r3 = longest_subsequence(list(28,26,12,23,35,39))
+    let r4 = longest_subsequence(list(9,8,7,6,5,7))
+    let r5 = longest_subsequence(list(1,1,1))
+    let r6 = longest_subsequence(list())
+    eq(r1, list(10,22,33,41,60,80))
+      && eq(r2, list(1,2,3,9))
+      && eq(r3, list(12,23,35,39))
+      && eq(r4, list(5,7))
+      && eq(r5, list(1,1,1))
+      && eq(r6, list())
+}

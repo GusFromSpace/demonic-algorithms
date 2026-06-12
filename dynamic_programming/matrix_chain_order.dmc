@@ -1,0 +1,51 @@
+# Matrix chain multiplication: minimum number of scalar multiplications.
+# Ported from TheAlgorithms/Python dp_matrix_chain_order.py
+# Returns matrix[1][n-1] (the optimal cost). DP table flattened as i*n + j.
+
+fn matrix_chain_min_ops[N](array: Tensor[i64, [N]]) -> i64 {
+    let n = N
+    let !matrix = forge.zeros[i64, [N, N]]   # matrix[i,j], zero-initialized
+
+    let !chain_length = 2
+    while chain_length < n {
+        let !a = 1
+        while a < n - chain_length + 1 {
+            let b = a + chain_length - 1
+            # large sentinel cost
+            let !best = 9000000000000000000
+            let !c = a
+            while c < b {
+                let cost = matrix[a, c] + matrix[c + 1, b]
+                    + array[a - 1] * array[c] * array[b]
+                if cost < best {
+                    best = cost
+                }
+                c = c + 1
+            }
+            matrix[a, b] = best
+            a = a + 1
+        }
+        chain_length = chain_length + 1
+    }
+    matrix[1, n - 1]
+}
+
+fn test_mco_3() -> bool {
+    let arr = [10, 30, 5]
+    matrix_chain_min_ops(arr) == 1500
+}
+
+fn test_mco_7() -> bool {
+    let arr = [30, 35, 15, 5, 10, 20, 25]
+    matrix_chain_min_ops(arr) == 15125
+}
+
+fn test_mco_5() -> bool {
+    let arr = [5, 4, 6, 2, 7]
+    matrix_chain_min_ops(arr) == 158
+}
+
+fn test_mco_5b() -> bool {
+    let arr = [40, 20, 30, 10, 30]
+    matrix_chain_min_ops(arr) == 26000
+}

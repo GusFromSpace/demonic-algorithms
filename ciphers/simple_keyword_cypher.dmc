@@ -1,0 +1,180 @@
+# Simple keyword cypher ported from TheAlgorithms/Python
+
+# Uppercase a single codepoint (a-z -> A-Z), leave others unchanged
+fn to_upper_cp(c: i64) -> i64 {
+    if c >= 97 { if c <= 122 { c - 32 } else { c } } else { c }
+}
+
+# is the codepoint an alphabetic letter (A-Z or a-z)?
+fn is_alpha_cp(c: i64) -> bool {
+    let !r = false
+    if c >= 65 { if c <= 90 { r = true } }
+    if c >= 97 { if c <= 122 { r = true } }
+    r
+}
+
+# does string `s` contain codepoint `c`?
+fn str_has_cp(s: str, c: i64) -> bool {
+    let n = len(s)
+    let !found = false
+    let !i = 0
+    while i < n {
+        if s[i] == c { found = true }
+        i = i + 1
+    }
+    found
+}
+
+# Removes duplicate alphabetic chars (space kept; letter ignored after first appearance)
+fn remove_duplicates(key: str) -> str {
+    let n = len(key)
+    let !out = ""
+    let !i = 0
+    while i < n {
+        let ch = key[i]
+        if ch == 32 {
+            out = out + chr(ch)
+        } else {
+            # alphabetic and not already present
+            if is_alpha_cp(ch) {
+                if str_has_cp(out, ch) {
+                    # skip
+                } else {
+                    out = out + chr(ch)
+                }
+            }
+        }
+        i = i + 1
+    }
+    out
+}
+
+# uppercase an entire string
+fn upper_str(s: str) -> str {
+    let n = len(s)
+    let !out = ""
+    let !i = 0
+    while i < n {
+        out = out + chr(to_upper_cp(s[i]))
+        i = i + 1
+    }
+    out
+}
+
+# Returns a 26-char cipher string: position i (0=A) is the cipher letter for plain letter chr(65+i)
+fn create_cipher_map(key_in: str) -> str {
+    let key = remove_duplicates(upper_str(key_in))
+    let !offset = len(key)
+    let !cipher = ""
+    # First fill with key characters (positions 0..len(key))
+    let !i = 0
+    while i < offset {
+        cipher = cipher + chr(key[i])
+        i = i + 1
+    }
+    # Then map remaining: for i in len(key)..26, char = alphabet[i - offset]
+    # while char in key: offset -= 1; char = alphabet[i-offset]  (offset PERSISTS across iters)
+    let !j = offset
+    while j < 26 {
+        let !charcp = 65 + (j - offset)
+        while str_has_cp(key, charcp) {
+            offset = offset - 1
+            charcp = 65 + (j - offset)
+        }
+        cipher = cipher + chr(charcp)
+        j = j + 1
+    }
+    cipher
+}
+
+# Encipher: uppercase message, map A-Z via cipher_str, keep others
+fn encipher(message: str, cipher_str: str) -> str {
+    let m = upper_str(message)
+    let n = len(m)
+    let !out = ""
+    let !i = 0
+    while i < n {
+        let ch = m[i]
+        if ch >= 65 {
+            if ch <= 90 {
+                out = out + chr(cipher_str[ch - 65])
+            } else {
+                out = out + chr(ch)
+            }
+        } else {
+            out = out + chr(ch)
+        }
+        i = i + 1
+    }
+    out
+}
+
+# Decipher: reverse the cipher map
+fn decipher(message: str, cipher_str: str) -> str {
+    let m = upper_str(message)
+    let n = len(m)
+    let !out = ""
+    let !i = 0
+    while i < n {
+        let ch = m[i]
+        if ch >= 65 {
+            if ch <= 90 {
+                # find k such that cipher_str[k] == ch, plain letter is chr(65+k)
+                let !k = 0
+                let !plain = ch
+                let !done = false
+                while k < 26 {
+                    if done {
+                        # skip
+                    } else {
+                        if cipher_str[k] == ch {
+                            plain = 65 + k
+                            done = true
+                        }
+                    }
+                    k = k + 1
+                }
+                if done {
+                    out = out + chr(plain)
+                } else {
+                    out = out + chr(ch)
+                }
+            } else {
+                out = out + chr(ch)
+            }
+        } else {
+            out = out + chr(ch)
+        }
+        i = i + 1
+    }
+    out
+}
+
+fn test_remove_duplicates() -> bool {
+    let a = remove_duplicates("Hello World!!")
+    let b = remove_duplicates("Goodbye!!")
+    a == "Helo Wrd" && b == "Godbye"
+}
+
+fn test_create_cipher_map() -> bool {
+    let c = create_cipher_map("Goodbye!!")
+    c == "GODBYEACFHIJKLMNPQRSTUVWXZ"
+}
+
+fn test_encipher() -> bool {
+    let c = create_cipher_map("Goodbye!!")
+    encipher("Hello World!!", c) == "CYJJM VMQJB!!"
+}
+
+fn test_decipher() -> bool {
+    let c = create_cipher_map("Goodbye!!")
+    decipher("CYJJM VMQJB!!", c) == "HELLO WORLD!!"
+}
+
+fn test_cipher_second_keyword() -> bool {
+    let c = create_cipher_map("Cipher")
+    let mapok = c == "CIPHERABDFGJKLMNOQSTUVWXYZ"
+    let enc = encipher("Attack at dawn", c) == "CTTCPG CT HCWL"
+    let dec = decipher("CTTCPG CT HCWL", c) == "ATTACK AT DAWN"
+    mapok && enc && dec
+}
