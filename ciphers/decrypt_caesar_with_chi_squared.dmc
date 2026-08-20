@@ -3,7 +3,7 @@
 # case-insensitive. Returns (most_likely_shift, chi_squared_value, decoded_text).
 
 # English letter frequency table, indexed 0..25 for 'a'..'z'.
-fn eng_freq(i: i64) -> f32 {
+fn eng_freq(i: i64) -> f64 {
     match i {
         0 => 0.08497,
         1 => 0.01492,
@@ -78,7 +78,7 @@ fn count_cp(s: str, cp: i64) -> i64 {
 #   occ = count of that letter in the string
 #   expected = freq * occ
 #   chi += (occ - expected)^2 / expected
-fn chi_squared(decrypted: str) -> f32 {
+fn chi_squared(decrypted: str) -> f64 {
     let n = len(decrypted)
     let !total = 0.0
     let !i = 0
@@ -99,7 +99,7 @@ fn chi_squared(decrypted: str) -> f32 {
 }
 
 # Main: brute-force all 26 shifts, return the one with the smallest chi-squared.
-fn decrypt_caesar_with_chi_squared(ciphertext: str) -> (i64, f32, str) {
+fn decrypt_caesar_with_chi_squared(ciphertext: str) -> (i64, f64, str) {
     let !best_shift = 0
     let !best_chi = 0.0
     let !best_text = ""
@@ -125,7 +125,7 @@ fn decrypt_caesar_with_chi_squared(ciphertext: str) -> (i64, f32, str) {
     (best_shift, best_chi, best_text)
 }
 
-fn approx(a: f32, b: f32) -> bool {
+fn approx(a: f64, b: f64) -> bool {
     let d = a - b
     let ad = if d < 0.0 { 0.0 - d } else { d }
     ad < 0.01

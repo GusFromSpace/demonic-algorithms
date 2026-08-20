@@ -2,7 +2,7 @@
 # Ported from TheAlgorithms/Python dp_max_subarray_sum.py
 # allow_empty: if 1, empty subarrays allowed (result floored at 0); else not.
 
-fn max_subarray_sum(arr, allow_empty: i64) -> f32 {
+fn max_subarray_sum(arr, allow_empty: i64) -> f64 {
     let n = list_len(arr)
     if n == 0 {
         return 0.0
